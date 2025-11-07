@@ -124,6 +124,15 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
             'Troli ${alreadyOut.join(', ')} masih berstatus OUT. Selesaikan proses check-in lebih dulu.',
           );
         }
+
+        final internalCodes = uniqueCodes
+            .where((code) => codeToTrolley[code]?.type == 'internal')
+            .toList();
+        if (internalCodes.isNotEmpty) {
+          return left(
+            'Troli ${internalCodes.join(', ')} adalah tipe internal dan tidak bisa melakukan OUT.',
+          );
+        }
       } else if (normalizedStatus == 'in') {
         final notOut = uniqueCodes
             .where((code) => codeToTrolley[code]?.status != 'out')
