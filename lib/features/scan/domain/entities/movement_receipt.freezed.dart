@@ -26,6 +26,7 @@ mixin _$MovementReceipt {
   DateTime? get checkedOutAt => throw _privateConstructorUsedError;
   DateTime? get checkedInAt => throw _privateConstructorUsedError;
   int? get sequenceNumber => throw _privateConstructorUsedError;
+  String? get trolleyKind => throw _privateConstructorUsedError;
   String? get destination => throw _privateConstructorUsedError;
   String? get vehicleSnapshot => throw _privateConstructorUsedError;
   String? get driverSnapshot => throw _privateConstructorUsedError;
@@ -53,6 +54,7 @@ abstract class $MovementReceiptCopyWith<$Res> {
     DateTime? checkedOutAt,
     DateTime? checkedInAt,
     int? sequenceNumber,
+    String? trolleyKind,
     String? destination,
     String? vehicleSnapshot,
     String? driverSnapshot,
@@ -79,6 +81,7 @@ class _$MovementReceiptCopyWithImpl<$Res, $Val extends MovementReceipt>
     Object? checkedOutAt = freezed,
     Object? checkedInAt = freezed,
     Object? sequenceNumber = freezed,
+    Object? trolleyKind = freezed,
     Object? destination = freezed,
     Object? vehicleSnapshot = freezed,
     Object? driverSnapshot = freezed,
@@ -105,6 +108,10 @@ class _$MovementReceiptCopyWithImpl<$Res, $Val extends MovementReceipt>
                 ? _value.sequenceNumber
                 : sequenceNumber // ignore: cast_nullable_to_non_nullable
                       as int?,
+            trolleyKind: freezed == trolleyKind
+                ? _value.trolleyKind
+                : trolleyKind // ignore: cast_nullable_to_non_nullable
+                      as String?,
             destination: freezed == destination
                 ? _value.destination
                 : destination // ignore: cast_nullable_to_non_nullable
@@ -138,6 +145,7 @@ abstract class _$$MovementReceiptImplCopyWith<$Res>
     DateTime? checkedOutAt,
     DateTime? checkedInAt,
     int? sequenceNumber,
+    String? trolleyKind,
     String? destination,
     String? vehicleSnapshot,
     String? driverSnapshot,
@@ -163,6 +171,7 @@ class __$$MovementReceiptImplCopyWithImpl<$Res>
     Object? checkedOutAt = freezed,
     Object? checkedInAt = freezed,
     Object? sequenceNumber = freezed,
+    Object? trolleyKind = freezed,
     Object? destination = freezed,
     Object? vehicleSnapshot = freezed,
     Object? driverSnapshot = freezed,
@@ -189,6 +198,10 @@ class __$$MovementReceiptImplCopyWithImpl<$Res>
             ? _value.sequenceNumber
             : sequenceNumber // ignore: cast_nullable_to_non_nullable
                   as int?,
+        trolleyKind: freezed == trolleyKind
+            ? _value.trolleyKind
+            : trolleyKind // ignore: cast_nullable_to_non_nullable
+                  as String?,
         destination: freezed == destination
             ? _value.destination
             : destination // ignore: cast_nullable_to_non_nullable
@@ -215,6 +228,7 @@ class _$MovementReceiptImpl implements _MovementReceipt {
     this.checkedOutAt,
     this.checkedInAt,
     this.sequenceNumber,
+    this.trolleyKind,
     this.destination,
     this.vehicleSnapshot,
     this.driverSnapshot,
@@ -234,6 +248,8 @@ class _$MovementReceiptImpl implements _MovementReceipt {
   @override
   final int? sequenceNumber;
   @override
+  final String? trolleyKind;
+  @override
   final String? destination;
   @override
   final String? vehicleSnapshot;
@@ -242,7 +258,7 @@ class _$MovementReceiptImpl implements _MovementReceipt {
 
   @override
   String toString() {
-    return 'MovementReceipt(code: $code, status: $status, checkedOutAt: $checkedOutAt, checkedInAt: $checkedInAt, sequenceNumber: $sequenceNumber, destination: $destination, vehicleSnapshot: $vehicleSnapshot, driverSnapshot: $driverSnapshot)';
+    return 'MovementReceipt(code: $code, status: $status, checkedOutAt: $checkedOutAt, checkedInAt: $checkedInAt, sequenceNumber: $sequenceNumber, trolleyKind: $trolleyKind, destination: $destination, vehicleSnapshot: $vehicleSnapshot, driverSnapshot: $driverSnapshot)';
   }
 
   @override
@@ -258,6 +274,8 @@ class _$MovementReceiptImpl implements _MovementReceipt {
                 other.checkedInAt == checkedInAt) &&
             (identical(other.sequenceNumber, sequenceNumber) ||
                 other.sequenceNumber == sequenceNumber) &&
+            (identical(other.trolleyKind, trolleyKind) ||
+                other.trolleyKind == trolleyKind) &&
             (identical(other.destination, destination) ||
                 other.destination == destination) &&
             (identical(other.vehicleSnapshot, vehicleSnapshot) ||
@@ -275,6 +293,7 @@ class _$MovementReceiptImpl implements _MovementReceipt {
     checkedOutAt,
     checkedInAt,
     sequenceNumber,
+    trolleyKind,
     destination,
     vehicleSnapshot,
     driverSnapshot,
@@ -304,6 +323,7 @@ abstract class _MovementReceipt implements MovementReceipt {
     final DateTime? checkedOutAt,
     final DateTime? checkedInAt,
     final int? sequenceNumber,
+    final String? trolleyKind,
     final String? destination,
     final String? vehicleSnapshot,
     final String? driverSnapshot,
@@ -322,6 +342,8 @@ abstract class _MovementReceipt implements MovementReceipt {
   DateTime? get checkedInAt;
   @override
   int? get sequenceNumber;
+  @override
+  String? get trolleyKind;
   @override
   String? get destination;
   @override

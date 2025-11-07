@@ -17,7 +17,7 @@ class HomePage extends StatelessWidget {
         title: Row(
           children: [
             Image.asset(
-              'assets/logo GCI.png',
+              'assets/logo_gci.png',
               height: 32,
               fit: BoxFit.contain,
             ),

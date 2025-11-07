@@ -227,11 +227,31 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
                   : null) ??
               trimmedDriverSnapshot;
 
+          String? trolleyKindLabel;
+          final trolleyData = movement['trolley'];
+          if (trolleyData is Map<String, dynamic>) {
+            final kind = trolleyData['kind'] as String?;
+            switch (kind) {
+              case 'reinforce':
+                trolleyKindLabel = 'Reinforce';
+                break;
+              case 'backplate':
+                trolleyKindLabel = 'Backplate';
+                break;
+              case 'compbase':
+                trolleyKindLabel = 'CompBase';
+                break;
+              default:
+                trolleyKindLabel = kind;
+            }
+          }
+
           receipts.add(
             MovementReceipt(
               code: code,
               status: statusValue,
               sequenceNumber: parsedSequence,
+              trolleyKind: trolleyKindLabel,
               checkedOutAt: checkedOutAt,
               checkedInAt: checkedInAt,
               destination: destinationValue,

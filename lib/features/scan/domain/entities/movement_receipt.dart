@@ -11,6 +11,7 @@ class MovementReceipt with _$MovementReceipt {
     DateTime? checkedOutAt,
     DateTime? checkedInAt,
     int? sequenceNumber,
+    String? trolleyKind,
     String? destination,
     String? vehicleSnapshot,
     String? driverSnapshot,
@@ -19,4 +20,3 @@ class MovementReceipt with _$MovementReceipt {
   factory MovementReceipt.fromJson(Map<String, dynamic> json) =>
       _$MovementReceiptFromJson(json);
 }
-

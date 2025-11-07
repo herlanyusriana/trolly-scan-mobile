@@ -18,6 +18,7 @@ _$MovementReceiptImpl _$$MovementReceiptImplFromJson(
       ? null
       : DateTime.parse(json['checkedInAt'] as String),
   sequenceNumber: (json['sequenceNumber'] as num?)?.toInt(),
+  trolleyKind: json['trolleyKind'] as String?,
   destination: json['destination'] as String?,
   vehicleSnapshot: json['vehicleSnapshot'] as String?,
   driverSnapshot: json['driverSnapshot'] as String?,
@@ -31,6 +32,7 @@ Map<String, dynamic> _$$MovementReceiptImplToJson(
   'checkedOutAt': instance.checkedOutAt?.toIso8601String(),
   'checkedInAt': instance.checkedInAt?.toIso8601String(),
   'sequenceNumber': instance.sequenceNumber,
+  'trolleyKind': instance.trolleyKind,
   'destination': instance.destination,
   'vehicleSnapshot': instance.vehicleSnapshot,
   'driverSnapshot': instance.driverSnapshot,

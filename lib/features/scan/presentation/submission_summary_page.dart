@@ -62,7 +62,7 @@ class SubmissionSummaryPage extends StatelessWidget {
               ),
               _buildPdfRow('Nomor Urut', _formatSequence(receipt.sequenceNumber)),
               _buildPdfRow('Kode Troli', receipt.code),
-              _buildPdfRow('Jenis Troli', submission.status.toUpperCase()),
+              _buildPdfRow('Jenis Troli', receipt.trolleyKind ?? 'Tidak diketahui'),
               _buildPdfRow('Tujuan / Lokasi', receipt.destination ?? submission.destination ?? '-'),
               _buildPdfRow('Driver', receipt.driverSnapshot ?? submission.driverSnapshot ?? submission.driverId ?? '-'),
               _buildPdfRow('Kendaraan', receipt.vehicleSnapshot ?? submission.vehicleSnapshot ?? submission.vehicleId ?? '-'),
@@ -88,7 +88,7 @@ class SubmissionSummaryPage extends StatelessWidget {
                   pw.TableRow(
                     children: [
                       _tableCell(_formatSequence(receipt.sequenceNumber)),
-                      _tableCell(receipt.status.toUpperCase()),
+                      _tableCell(receipt.trolleyKind ?? '-'),
                       _tableCell(receipt.destination ?? submission.destination ?? '-'),
                     ],
                   ),
