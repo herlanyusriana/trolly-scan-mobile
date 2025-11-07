@@ -26,6 +26,19 @@ class HomePage extends StatelessWidget {
           ],
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              context.read<AuthBloc>().logout();
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                AppRouter.login,
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
