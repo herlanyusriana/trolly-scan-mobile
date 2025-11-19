@@ -20,7 +20,6 @@ class ScanSummaryPage extends StatefulWidget {
 }
 
 class _ScanSummaryPageState extends State<ScanSummaryPage> {
-  final _destinationController = TextEditingController();
   final _vehicleManualController = TextEditingController();
   final _driverManualController = TextEditingController();
 
@@ -38,27 +37,23 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
 
   @override
   void dispose() {
-    _destinationController.dispose();
     _vehicleManualController.dispose();
     _driverManualController.dispose();
     super.dispose();
   }
 
   void _submit(BuildContext context, ScanState state) {
-    final destination = _destinationController.text.trim();
-
-    if (destination.isEmpty) {
+    final departureNumber = state.departureNumber;
+    if (departureNumber == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _status == 'out'
-                ? 'Isi tujuan keberangkatan terlebih dahulu.'
-                : 'Isi lokasi pengembalian terlebih dahulu.',
-          ),
+        const SnackBar(
+          content: Text('Pilih nomor keberangkatan terlebih dahulu.'),
         ),
       );
       return;
     }
+
+    final destination = _status == 'in' ? 'GCI' : 'LG';
 
     String? vehicleId;
     String? vehicleSnapshot;
@@ -119,8 +114,16 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
             ? driverSnapshot
             : null,
         status: _status,
+        departureNumber: departureNumber,
       ),
     );
+  }
+
+  void _changeStatus(String newStatus) {
+    if (_status == newStatus) return;
+    setState(() {
+      _status = newStatus;
+    });
   }
 
   @override
@@ -148,10 +151,15 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
         }
       },
       builder: (context, state) {
+        final theme = Theme.of(context);
         final scannedCodes = state.scannedCodes;
         final isSubmitting = state.status == ScanStatus.submitting;
         final isMastersLoading = state.mastersStatus == MasterStatus.loading;
         final hasMastersError = state.mastersStatus == MasterStatus.failure;
+        final departureNumber = state.departureNumber;
+        final departureLabel = departureNumber != null
+            ? departureNumber.toString().padLeft(2, '0')
+            : '-';
 
         return Scaffold(
           appBar: AppBar(
@@ -199,18 +207,49 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextField(
-                        controller: _destinationController,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          labelText: _status == 'out'
-                              ? 'Tujuan Keberangkatan'
-                              : 'Lokasi Pengembalian',
+                      Row(
+                        children: [
+                          const Icon(Icons.flag_outlined),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Nomor Keberangkatan: $departureLabel',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _status == 'out'
+                                  ? 'Tujuan Keberangkatan'
+                                  : 'Lokasi Pengembalian',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.white70,
+                              ),
+                            ),
+                            Text(
+                              _status == 'out' ? 'LG' : 'GCI',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _selectedVehicleValue,
+                        initialValue: _selectedVehicleValue,
                         decoration: const InputDecoration(
                           labelText: 'Kendaraan',
                         ),
@@ -256,7 +295,7 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
                         ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _selectedDriverValue,
+                        initialValue: _selectedDriverValue,
                         decoration: const InputDecoration(labelText: 'Driver'),
                         items: [
                           const DropdownMenuItem(
@@ -296,15 +335,17 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
                           ChoiceChip(
                             label: const Text('OUT'),
                             selected: _status == 'out',
-                            onSelected: (value) =>
-                                setState(() => _status = 'out'),
+                            onSelected: (value) {
+                              if (value) _changeStatus('out');
+                            },
                           ),
                           const SizedBox(width: 12),
                           ChoiceChip(
                             label: const Text('IN'),
                             selected: _status == 'in',
-                            onSelected: (value) =>
-                                setState(() => _status = 'in'),
+                            onSelected: (value) {
+                              if (value) _changeStatus('in');
+                            },
                           ),
                         ],
                       ),

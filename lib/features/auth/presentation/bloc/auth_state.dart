@@ -2,7 +2,14 @@ import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/mobile_user.dart';
 
-enum AuthStatus { initial, loading, success, pendingApproval, registered, failure }
+enum AuthStatus {
+  initial,
+  loading,
+  success,
+  pendingApproval,
+  registered,
+  failure,
+}
 
 class AuthState extends Equatable {
   const AuthState({

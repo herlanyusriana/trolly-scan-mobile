@@ -8,6 +8,8 @@ enum ScanStatus { idle, ready, submitting, success, failure }
 
 enum MasterStatus { initial, loading, success, failure }
 
+const _departureUnset = Object();
+
 class ScanState extends Equatable {
   const ScanState({
     this.scannedCodes = const <String>[],
@@ -18,6 +20,7 @@ class ScanState extends Equatable {
     this.drivers = const <Driver>[],
     this.mastersStatus = MasterStatus.initial,
     this.mastersError,
+    this.departureNumber,
   });
 
   final List<String> scannedCodes;
@@ -28,8 +31,10 @@ class ScanState extends Equatable {
   final List<Driver> drivers;
   final MasterStatus mastersStatus;
   final String? mastersError;
+  final int? departureNumber;
 
   bool get hasSelection => scannedCodes.isNotEmpty;
+  bool get hasDepartureNumber => departureNumber != null;
 
   ScanState copyWith({
     List<String>? scannedCodes,
@@ -40,6 +45,7 @@ class ScanState extends Equatable {
     List<Driver>? drivers,
     MasterStatus? mastersStatus,
     String? mastersError,
+    Object? departureNumber = _departureUnset,
   }) {
     return ScanState(
       scannedCodes: scannedCodes ?? this.scannedCodes,
@@ -50,6 +56,9 @@ class ScanState extends Equatable {
       drivers: drivers ?? this.drivers,
       mastersStatus: mastersStatus ?? this.mastersStatus,
       mastersError: mastersError ?? this.mastersError,
+      departureNumber: identical(departureNumber, _departureUnset)
+          ? this.departureNumber
+          : departureNumber as int?,
     );
   }
 
@@ -63,5 +72,6 @@ class ScanState extends Equatable {
     drivers,
     mastersStatus,
     mastersError,
+    departureNumber,
   ];
 }

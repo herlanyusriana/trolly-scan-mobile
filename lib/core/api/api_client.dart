@@ -7,13 +7,11 @@ class ApiClient {
   ApiClient({Dio? dio}) : _dio = dio ?? Dio(_defaultOptions);
 
   static BaseOptions get _defaultOptions => BaseOptions(
-        baseUrl: AppConfig.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {
-          'Accept': 'application/json',
-        },
-      );
+    baseUrl: AppConfig.baseUrl,
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+    headers: {'Accept': 'application/json'},
+  );
 
   final Dio _dio;
 
@@ -22,6 +20,8 @@ class ApiClient {
   void configure({String? token}) {
     _dio.interceptors.clear();
     _dio.interceptors.add(AuthInterceptor(token: token));
-    _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    _dio.interceptors.add(
+      LogInterceptor(requestBody: true, responseBody: true),
+    );
   }
 }

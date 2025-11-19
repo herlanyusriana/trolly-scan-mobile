@@ -15,5 +15,6 @@ class MobileUser with _$MobileUser {
     String? token,
   }) = _MobileUser;
 
-  factory MobileUser.fromJson(Map<String, dynamic> json) => _$MobileUserFromJson(json);
+  factory MobileUser.fromJson(Map<String, dynamic> json) =>
+      _$MobileUserFromJson(json);
 }

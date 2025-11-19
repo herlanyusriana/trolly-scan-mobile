@@ -35,3 +35,7 @@ class AuthCheckStatus extends AuthEvent {
 class AuthLogout extends AuthEvent {
   const AuthLogout();
 }
+
+class AuthSessionChecked extends AuthEvent {
+  const AuthSessionChecked();
+}

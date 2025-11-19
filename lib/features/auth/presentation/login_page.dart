@@ -35,9 +35,9 @@ class _LoginPageState extends State<LoginPage> {
             builder: (_) => const _PendingApprovalDialog(),
           );
         } else if (state.status == AuthStatus.failure) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error ?? 'Login gagal')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.error ?? 'Login gagal')));
         }
       },
       builder: (context, state) {
@@ -91,9 +91,9 @@ class _LoginPageState extends State<LoginPage> {
                         ? null
                         : () {
                             context.read<AuthBloc>().login(
-                                  identity: _identityController.text.trim(),
-                                  password: _passwordController.text,
-                                );
+                              identity: _identityController.text.trim(),
+                              password: _passwordController.text,
+                            );
                           },
                     child: isLoading
                         ? const SizedBox(
@@ -113,7 +113,9 @@ class _LoginPageState extends State<LoginPage> {
                     child: TextButton(
                       onPressed: isLoading
                           ? null
-                          : () => Navigator.of(context).pushNamed(AppRouter.register),
+                          : () => Navigator.of(
+                              context,
+                            ).pushNamed(AppRouter.register),
                       child: const Text('Buat akun baru'),
                     ),
                   ),
@@ -161,9 +163,7 @@ class _LoginTextField extends StatelessWidget {
         prefixIcon: Icon(icon, color: theme.colorScheme.primary),
         filled: true,
         fillColor: theme.colorScheme.surface,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

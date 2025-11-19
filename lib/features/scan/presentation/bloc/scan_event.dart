@@ -37,6 +37,7 @@ class ScanSubmitted extends ScanEvent {
     this.vehicleSnapshot,
     this.driverSnapshot,
     required this.status,
+    required this.departureNumber,
   });
 
   final String destination;
@@ -45,6 +46,7 @@ class ScanSubmitted extends ScanEvent {
   final String? vehicleSnapshot;
   final String? driverSnapshot;
   final String status;
+  final int departureNumber;
 
   @override
   List<Object?> get props => [
@@ -54,9 +56,23 @@ class ScanSubmitted extends ScanEvent {
     vehicleSnapshot,
     driverSnapshot,
     status,
+    departureNumber,
   ];
 }
 
 class ScanMastersRequested extends ScanEvent {
   const ScanMastersRequested();
+}
+
+class ScanSessionRestored extends ScanEvent {
+  const ScanSessionRestored();
+}
+
+class ScanDepartureNumberChanged extends ScanEvent {
+  const ScanDepartureNumberChanged(this.departureNumber);
+
+  final int? departureNumber;
+
+  @override
+  List<Object?> get props => [departureNumber];
 }

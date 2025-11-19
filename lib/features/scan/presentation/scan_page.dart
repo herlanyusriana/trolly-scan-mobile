@@ -16,6 +16,61 @@ class ScanPage extends StatefulWidget {
 }
 
 class _ScanPageState extends State<ScanPage> {
+  Future<void> _selectDepartureNumber(
+    BuildContext context, {
+    int? initialValue,
+  }) async {
+    final controller = TextEditingController(
+      text: initialValue != null ? initialValue.toString() : '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Nomor Keberangkatan'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Masukkan nomor',
+              hintText: 'Misal: 12',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!context.mounted || result == null) return;
+
+    final parsed = int.tryParse(result);
+    if (parsed == null || parsed <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nomor keberangkatan tidak valid.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    context.read<ScanBloc>().add(ScanDepartureNumberChanged(parsed));
+  }
+
+  void _clearDepartureNumber(BuildContext context) {
+    context.read<ScanBloc>().add(const ScanDepartureNumberChanged(null));
+  }
+
   Future<void> _openScanner(BuildContext context) async {
     final scannedCodes = await Navigator.of(context).push<List<String>>(
       MaterialPageRoute<List<String>>(
@@ -23,9 +78,7 @@ class _ScanPageState extends State<ScanPage> {
         fullscreenDialog: true,
       ),
     );
-    if (!context.mounted ||
-        scannedCodes == null ||
-        scannedCodes.isEmpty) {
+    if (!context.mounted || scannedCodes == null || scannedCodes.isEmpty) {
       return;
     }
 
@@ -65,6 +118,9 @@ class _ScanPageState extends State<ScanPage> {
 
   @override
   Widget build(BuildContext context) {
+    final hasDepartureNumber = context.select(
+      (ScanBloc bloc) => bloc.state.departureNumber != null,
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan Trolley'),
@@ -73,33 +129,47 @@ class _ScanPageState extends State<ScanPage> {
           IconButton(
             icon: const Icon(Icons.edit_note_rounded),
             tooltip: 'Tambah manual',
-            onPressed: () async {
-              final code = await _showAddCodeDialog(context);
-              if (!context.mounted) return;
-              final normalized = parseTrolleyCode(code);
-              if (normalized != null && normalized.isNotEmpty) {
-                context.read<ScanBloc>().add(ScanCodeAdded(normalized));
-              } else if (code != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Kode troli tidak valid.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
+            onPressed: hasDepartureNumber
+                ? () async {
+                    final code = await _showAddCodeDialog(context);
+                    if (!context.mounted) return;
+                    final normalized = parseTrolleyCode(code);
+                    if (normalized != null && normalized.isNotEmpty) {
+                      context.read<ScanBloc>().add(ScanCodeAdded(normalized));
+                    } else if (code != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Kode troli tidak valid.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
+                : null,
           ),
         ],
       ),
       body: BlocBuilder<ScanBloc, ScanState>(
         builder: (context, state) {
           final theme = Theme.of(context);
+          final hasDepartureNumber = state.departureNumber != null;
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _DepartureSelector(
+                  departureNumber: state.departureNumber,
+                  onPick: () => _selectDepartureNumber(
+                    context,
+                    initialValue: state.departureNumber,
+                  ),
+                  onClear: state.departureNumber != null
+                      ? () => _clearDepartureNumber(context)
+                      : null,
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'Trolley scanned (${state.scannedCodes.length})',
                   style: theme.textTheme.titleMedium?.copyWith(
@@ -111,7 +181,9 @@ class _ScanPageState extends State<ScanPage> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => _openScanner(context),
+                        onPressed: hasDepartureNumber
+                            ? () => _openScanner(context)
+                            : null,
                         icon: const Icon(Icons.qr_code_scanner_rounded),
                         label: const Text('Scan QR'),
                       ),
@@ -218,9 +290,11 @@ class _ScanPageState extends State<ScanPage> {
                       child: ElevatedButton(
                         onPressed: state.scannedCodes.isEmpty
                             ? null
-                            : () => Navigator.of(
+                            : hasDepartureNumber
+                            ? () => Navigator.of(
                                 context,
-                              ).pushNamed(AppRouter.scanSummary),
+                              ).pushNamed(AppRouter.scanSummary)
+                            : null,
                         child: const Text('Lanjutkan'),
                       ),
                     ),
@@ -262,5 +336,72 @@ class _ScanPageState extends State<ScanPage> {
     );
 
     return result;
+  }
+}
+
+class _DepartureSelector extends StatelessWidget {
+  const _DepartureSelector({
+    required this.departureNumber,
+    required this.onPick,
+    this.onClear,
+  });
+
+  final int? departureNumber;
+  final VoidCallback onPick;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final numberLabel = departureNumber != null
+        ? departureNumber.toString().padLeft(2, '0')
+        : 'Belum dipilih';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Nomor Keberangkatan',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            numberLabel,
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: departureNumber != null
+                  ? theme.colorScheme.primary
+                  : Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: onPick,
+                child: Text(
+                  departureNumber == null ? 'Pilih Nomor' : 'Ubah Nomor',
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (departureNumber != null)
+                TextButton(onPressed: onClear, child: const Text('Hapus')),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

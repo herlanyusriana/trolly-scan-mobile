@@ -7,4 +7,6 @@ import '../../data/models/register_request.dart';
 abstract class AuthRepository {
   Future<Either<String, MobileUser>> login(LoginRequest request);
   Future<Either<String, String>> register(RegisterRequest request);
+  MobileUser? readSavedUser();
+  Future<void> clearSession();
 }

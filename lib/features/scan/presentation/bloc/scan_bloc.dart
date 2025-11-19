@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fpdart/fpdart.dart';
 
+import '../../../../core/storage/session_storage.dart';
 import '../../domain/entities/trolley_submission.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/entities/driver.dart';
@@ -9,25 +10,35 @@ import 'scan_event.dart';
 import 'scan_state.dart';
 
 class ScanBloc extends Bloc<ScanEvent, ScanState> {
-  ScanBloc(this._repository) : super(const ScanState()) {
+  ScanBloc(this._repository, this._sessionStorage) : super(const ScanState()) {
     on<ScanCodeAdded>(_onCodeAdded);
     on<ScanCodeRemoved>(_onCodeRemoved);
     on<ScanCleared>(_onCleared);
     on<ScanSubmitted>(_onSubmitted);
     on<ScanMastersRequested>(_onMastersRequested);
+    on<ScanSessionRestored>(_onSessionRestored);
+    on<ScanDepartureNumberChanged>(_onDepartureNumberChanged);
   }
 
   final TrolleyRepository _repository;
+  final SessionStorage _sessionStorage;
 
-  void _onCodeAdded(ScanCodeAdded event, Emitter<ScanState> emit) {
+  Future<void> _onCodeAdded(
+    ScanCodeAdded event,
+    Emitter<ScanState> emit,
+  ) async {
     if (state.scannedCodes.contains(event.code)) {
       return;
     }
     final updated = List<String>.from(state.scannedCodes)..add(event.code);
     emit(state.copyWith(scannedCodes: updated, status: ScanStatus.ready));
+    await _sessionStorage.savePendingScanCodes(updated);
   }
 
-  void _onCodeRemoved(ScanCodeRemoved event, Emitter<ScanState> emit) {
+  Future<void> _onCodeRemoved(
+    ScanCodeRemoved event,
+    Emitter<ScanState> emit,
+  ) async {
     final updated = List<String>.from(state.scannedCodes)..remove(event.code);
     emit(
       state.copyWith(
@@ -35,10 +46,24 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         status: updated.isEmpty ? ScanStatus.idle : ScanStatus.ready,
       ),
     );
+    await _sessionStorage.savePendingScanCodes(updated);
   }
 
-  void _onCleared(ScanCleared event, Emitter<ScanState> emit) {
+  Future<void> _onCleared(ScanCleared event, Emitter<ScanState> emit) async {
     emit(state.copyWith(scannedCodes: [], status: ScanStatus.idle));
+    await _sessionStorage.clearPendingScanCodes();
+  }
+
+  Future<void> _onDepartureNumberChanged(
+    ScanDepartureNumberChanged event,
+    Emitter<ScanState> emit,
+  ) async {
+    emit(state.copyWith(departureNumber: event.departureNumber));
+    if (event.departureNumber != null) {
+      await _sessionStorage.saveDepartureNumber(event.departureNumber!);
+    } else {
+      await _sessionStorage.clearDepartureNumber();
+    }
   }
 
   Future<void> _onMastersRequested(
@@ -108,10 +133,11 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           vehicleSnapshot: event.vehicleSnapshot,
           driverSnapshot: event.driverSnapshot,
           status: event.status,
+          departureNumber: event.departureNumber,
         );
 
-    result.match(
-      (error) {
+    await result.match<Future<void>>(
+      (error) async {
         emit(
           state.copyWith(
             status: ScanStatus.failure,
@@ -121,16 +147,41 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
           ),
         );
       },
-      (submission) {
+      (submission) async {
         emit(
           state.copyWith(
             status: ScanStatus.success,
             scannedCodes: const <String>[],
             lastSubmission: submission,
             error: null,
+            departureNumber: null,
           ),
         );
+        await _sessionStorage.clearPendingScanCodes();
+        await _sessionStorage.clearDepartureNumber();
+        await _sessionStorage.prependSubmission(submission);
       },
     );
+  }
+
+  Future<void> _onSessionRestored(
+    ScanSessionRestored event,
+    Emitter<ScanState> emit,
+  ) async {
+    final savedCodes = _sessionStorage.readPendingScanCodes();
+    final savedDeparture = _sessionStorage.readDepartureNumber();
+    emit(
+      state.copyWith(
+        scannedCodes: savedCodes,
+        status: savedCodes.isEmpty ? ScanStatus.idle : ScanStatus.ready,
+        departureNumber: savedDeparture,
+      ),
+    );
+  }
+}
+
+extension ScanBlocX on ScanBloc {
+  void restoreSession() {
+    add(const ScanSessionRestored());
   }
 }

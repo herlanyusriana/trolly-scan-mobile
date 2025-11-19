@@ -74,6 +74,7 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
     String? vehicleSnapshot,
     String? driverSnapshot,
     required String status,
+    required int departureNumber,
   }) async {
     try {
       final uniqueCodes = trolleyCodes
@@ -163,6 +164,7 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
                 ? trimmedDestination
                 : 'Tidak diketahui',
           if (isOut) 'expected_return_at': null,
+          if (isOut) 'sequence_number': departureNumber,
           if (vehicleId != null)
             'vehicle_id': int.tryParse(vehicleId) ?? vehicleId,
           if (driverId != null) 'driver_id': int.tryParse(driverId) ?? driverId,
@@ -205,8 +207,9 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
               ? DateTime.tryParse(checkedInAtRaw)
               : null;
 
-          final parsedTimestamp =
-              isOut ? checkedOutAt : checkedInAt ?? checkedOutAt;
+          final parsedTimestamp = isOut
+              ? checkedOutAt
+              : checkedInAt ?? checkedOutAt;
           submissionTime ??= parsedTimestamp;
 
           final statusValue =
@@ -214,16 +217,19 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
           final destinationValue = isOut
               ? readField('destination') ?? trimmedDestination
               : trimmedDestination ?? readField('destination');
-          final vehicleSnapshotValue = readField('vehicle_snapshot') ??
+          final vehicleSnapshotValue =
+              readField('vehicle_snapshot') ??
               (movement['vehicle'] is Map<String, dynamic>
-                  ? (movement['vehicle'] as Map<String, dynamic>)['plate_number']
-                      as String?
+                  ? (movement['vehicle']
+                            as Map<String, dynamic>)['plate_number']
+                        as String?
                   : null) ??
               trimmedVehicleSnapshot;
-          final driverSnapshotValue = readField('driver_snapshot') ??
+          final driverSnapshotValue =
+              readField('driver_snapshot') ??
               (movement['driver'] is Map<String, dynamic>
                   ? (movement['driver'] as Map<String, dynamic>)['name']
-                      as String?
+                        as String?
                   : null) ??
               trimmedDriverSnapshot;
 

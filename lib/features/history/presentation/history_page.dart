@@ -16,10 +16,7 @@ class HistoryPage extends StatelessWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Scan History'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Scan History'), centerTitle: true),
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         itemBuilder: (_, index) => items[index],
@@ -62,33 +59,45 @@ class _HistoryItem extends StatelessWidget {
             children: [
               Text(
                 code,
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               Text(
                 _formatTimestamp(timestamp),
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white70,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 location,
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white54,
+                ),
               ),
             ],
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isOut ? const Color.fromRGBO(220, 38, 38, 0.2) : const Color.fromRGBO(22, 163, 74, 0.2),
+              color: isOut
+                  ? const Color.fromRGBO(220, 38, 38, 0.2)
+                  : const Color.fromRGBO(22, 163, 74, 0.2),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: isOut ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                color: isOut
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF16A34A),
               ),
             ),
             child: Text(
               status,
               style: theme.textTheme.labelMedium?.copyWith(
-                color: isOut ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                color: isOut
+                    ? const Color(0xFFDC2626)
+                    : const Color(0xFF16A34A),
                 fontWeight: FontWeight.bold,
               ),
             ),

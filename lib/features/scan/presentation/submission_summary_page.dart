@@ -13,120 +13,172 @@ class SubmissionSummaryPage extends StatelessWidget {
 
   final TrolleySubmission submission;
 
-  Future<void> _exportPdf(
+  static String _formatSequence(int? sequence) {
+    if (sequence == null) return '-';
+    return sequence.toString().padLeft(2, '0');
+  }
+
+  static String _formatDateTime(DateTime? value) {
+    if (value == null) return '-';
+    return DateFormat('dd MMM yyyy HH:mm').format(value.toLocal());
+  }
+
+  Future<void> _exportSubmissionPdf(
     BuildContext context,
-    MovementReceipt receipt,
+    List<MovementReceipt> receipts,
   ) async {
+    if (receipts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak ada data troli untuk dicetak.')),
+      );
+      return;
+    }
+
     final doc = pw.Document();
-    final createdAt = receipt.checkedOutAt ?? submission.createdAt;
+    final driver =
+        submission.driverSnapshot ??
+        receipts.first.driverSnapshot ??
+        submission.driverId ??
+        '-';
+    final vehicle =
+        submission.vehicleSnapshot ??
+        receipts.first.vehicleSnapshot ??
+        submission.vehicleId ??
+        '-';
 
     doc.addPage(
-      pw.Page(
+      pw.MultiPage(
         margin: const pw.EdgeInsets.all(32),
+        pageFormat: pdf.PdfPageFormat.a4,
         build: (context) {
-          final formattedCreatedAt =
-              DateFormat('dd MMM yyyy HH:mm').format(submission.createdAt.toLocal());
-
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      'PT Geum Cheon Indo',
-                      style: pw.TextStyle(
-                        fontSize: 14,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                    pw.Text(
-                      'Departemen Operasional & Logistik',
-                      style: const pw.TextStyle(fontSize: 10),
-                    ),
-                    pw.SizedBox(height: 12),
-                    pw.Text(
-                      'SURAT JALAN TROLI',
-                      style: pw.TextStyle(
-                        fontSize: 20,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      formattedCreatedAt,
-                      style: const pw.TextStyle(fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              _buildPdfRow('Nomor Urut', _formatSequence(receipt.sequenceNumber)),
-              _buildPdfRow('Kode Troli', receipt.code),
-              _buildPdfRow('Jenis Troli', receipt.trolleyKind ?? 'Tidak diketahui'),
-              _buildPdfRow('Tujuan / Lokasi', receipt.destination ?? submission.destination ?? '-'),
-              _buildPdfRow('Driver', receipt.driverSnapshot ?? submission.driverSnapshot ?? submission.driverId ?? '-'),
-              _buildPdfRow('Kendaraan', receipt.vehicleSnapshot ?? submission.vehicleSnapshot ?? submission.vehicleId ?? '-'),
-              _buildPdfRow('Waktu Keluar', _formatDateTime(receipt.checkedOutAt)),
-              _buildPdfRow('Waktu Masuk', _formatDateTime(receipt.checkedInAt)),
-              pw.SizedBox(height: 24),
-              pw.Table(
-                border: pw.TableBorder.all(color: pdf.PdfColors.grey600, width: 0.7),
-                columnWidths: {
-                  0: const pw.FixedColumnWidth(40),
-                  1: const pw.FlexColumnWidth(),
-                  2: const pw.FixedColumnWidth(120),
-                },
+          final createdAt = _formatDateTime(submission.createdAt);
+          final destination =
+              submission.destination ?? receipts.first.destination ?? '-';
+          return [
+            pw.Center(
+              child: pw.Column(
                 children: [
-                  pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: pdf.PdfColors.grey200),
-                    children: [
-                      _tableHeaderCell('No.'),
-                      _tableHeaderCell('Jenis Troli'),
-                      _tableHeaderCell('Catatan'),
-                    ],
+                  pw.Text(
+                    'PT Geum Cheon Indo',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
                   ),
-                  pw.TableRow(
-                    children: [
-                      _tableCell(_formatSequence(receipt.sequenceNumber)),
-                      _tableCell(receipt.trolleyKind ?? '-'),
-                      _tableCell(receipt.destination ?? submission.destination ?? '-'),
-                    ],
+                  pw.Text(
+                    'Departemen Operasional & Logistik',
+                    style: const pw.TextStyle(fontSize: 10),
                   ),
+                  pw.SizedBox(height: 12),
+                  pw.Text(
+                    'SURAT JALAN TROLI',
+                    style: pw.TextStyle(
+                      fontSize: 20,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(createdAt, style: const pw.TextStyle(fontSize: 11)),
                 ],
               ),
-              pw.Spacer(),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  _signatureBlock('Yang Menerima'),
-                  _signatureBlock('Yang Menyerahkan'),
-                ],
-              ),
-            ],
-          );
+            ),
+            _buildPdfRow(
+              'Nomor Urut',
+              _formatSequence(submission.sequenceNumber),
+            ),
+            _buildPdfRow('Tujuan / Lokasi', destination),
+            _buildPdfRow('Driver', driver),
+            _buildPdfRow('Kendaraan', vehicle),
+            _buildPdfRow('Jumlah Troli', receipts.length.toString()),
+            pw.SizedBox(height: 24),
+            _buildCombinedTable(receipts, destination),
+            pw.SizedBox(height: 32),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _signatureBlock('Yang Menerima'),
+                _signatureBlock('Yang Menyerahkan'),
+              ],
+            ),
+          ];
         },
       ),
     );
 
     try {
-      final bytes = await doc.save();
-      final sequence = _formatSequence(receipt.sequenceNumber);
-      final filename = 'surat-jalan-$sequence-${receipt.code}.pdf';
-      await Printing.sharePdf(bytes: bytes, filename: filename);
+      final filename =
+          'surat-jalan-${_formatSequence(submission.sequenceNumber)}.pdf';
+      await Printing.sharePdf(bytes: await doc.save(), filename: filename);
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal membuat PDF: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $error')));
     }
+  }
+
+  static pw.Widget _buildCombinedTable(
+    List<MovementReceipt> receipts,
+    String fallbackDestination,
+  ) {
+    return pw.Table(
+      border: pw.TableBorder.all(color: pdf.PdfColors.grey600, width: 0.7),
+      columnWidths: {
+        0: const pw.FixedColumnWidth(36),
+        1: const pw.FixedColumnWidth(80),
+        2: const pw.FixedColumnWidth(90),
+        3: const pw.FixedColumnWidth(70),
+        4: const pw.FlexColumnWidth(),
+        5: const pw.FixedColumnWidth(120),
+      },
+      children: [
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: pdf.PdfColors.grey200),
+          children: [
+            _tableHeaderCell('No.'),
+            _tableHeaderCell('Kode'),
+            _tableHeaderCell('Jenis'),
+            _tableHeaderCell('Status'),
+            _tableHeaderCell('Tujuan / Lokasi'),
+            _tableHeaderCell('Waktu'),
+          ],
+        ),
+        ...receipts.map((receipt) {
+          final times = [
+            'Keluar: ${_formatDateTime(receipt.checkedOutAt)}',
+            'Masuk: ${_formatDateTime(receipt.checkedInAt)}',
+          ].join('\n');
+          return pw.TableRow(
+            children: [
+              _tableCell(_formatSequence(receipt.sequenceNumber)),
+              _tableCell(receipt.code),
+              _tableCell(receipt.trolleyKind ?? '-'),
+              _tableCell(receipt.status.toUpperCase()),
+              _tableCell(receipt.destination ?? fallbackDestination),
+              _tableCell(times),
+            ],
+          );
+        }),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final receipts = submission.receipts;
+    final sequenceLabel = _formatSequence(submission.sequenceNumber);
+    final printableReceipts = receipts.isNotEmpty
+        ? receipts
+        : submission.trolleyCodes
+              .map(
+                (code) => MovementReceipt(
+                  code: code,
+                  status: submission.status,
+                  destination: submission.destination,
+                ),
+              )
+              .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -152,11 +204,13 @@ class SubmissionSummaryPage extends StatelessWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.15,
+                        ),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
-                        Icons.check_circle_outlined,
+                        Icons.flag_circle_outlined,
                         color: theme.colorScheme.primary,
                         size: 28,
                       ),
@@ -167,14 +221,14 @@ class SubmissionSummaryPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Data berhasil dikirim',
+                            'Urutan Keberangkatan #$sequenceLabel',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Surat jalan siap diunduh untuk setiap troli.',
+                            'Data berhasil dikirim dan siap untuk dicetak.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.white70,
                             ),
@@ -211,10 +265,7 @@ class SubmissionSummaryPage extends StatelessWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
                           final receipt = receipts[index];
-                          return _ReceiptCard(
-                            receipt: receipt,
-                            onExport: () => _exportPdf(context, receipt),
-                          );
+                          return _ReceiptCard(receipt: receipt);
                         },
                       ),
               ),
@@ -231,8 +282,20 @@ class SubmissionSummaryPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
+                  onPressed: () =>
+                      _exportSubmissionPdf(context, printableReceipts),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: Text('Cetak Surat Jalan Urutan $sequenceLabel'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil(AppRouter.home, (route) => false);
                   },
                   icon: const Icon(Icons.home_outlined),
                   label: const Text('Kembali ke Beranda'),
@@ -241,9 +304,11 @@ class SubmissionSummaryPage extends StatelessWidget {
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: () {
-                    Navigator.of(context).pushReplacementNamed(AppRouter.history);
+                    Navigator.of(
+                      context,
+                    ).pushReplacementNamed(AppRouter.history);
                   },
                   icon: const Icon(Icons.history_rounded),
                   label: const Text('Lihat Riwayat'),
@@ -256,16 +321,6 @@ class SubmissionSummaryPage extends StatelessWidget {
     );
   }
 
-  static String _formatSequence(int? sequence) {
-    if (sequence == null) return '-';
-    return sequence.toString().padLeft(2, '0');
-  }
-
-  static String _formatDateTime(DateTime? value) {
-    if (value == null) return '-';
-    return DateFormat('dd MMM yyyy HH:mm').format(value.toLocal());
-  }
-
   static pw.Widget _buildPdfRow(String label, String value) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 4),
@@ -273,20 +328,14 @@ class SubmissionSummaryPage extends StatelessWidget {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.SizedBox(
-            width: 140,
+            width: 160,
             child: pw.Text(
               label,
-              style: pw.TextStyle(
-                fontWeight: pw.FontWeight.bold,
-                fontSize: 12,
-              ),
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
             ),
           ),
           pw.Expanded(
-            child: pw.Text(
-              value,
-              style: const pw.TextStyle(fontSize: 12),
-            ),
+            child: pw.Text(value, style: const pw.TextStyle(fontSize: 12)),
           ),
         ],
       ),
@@ -318,9 +367,11 @@ pw.Widget _signatureBlock(String title) {
       pw.Text(title, style: const pw.TextStyle(fontSize: 11)),
       pw.SizedBox(height: 48),
       pw.Container(
-        width: 140,
+        width: 160,
         decoration: const pw.BoxDecoration(
-          border: pw.Border(bottom: pw.BorderSide(color: pdf.PdfColors.grey700, width: 0.6)),
+          border: pw.Border(
+            bottom: pw.BorderSide(color: pdf.PdfColors.grey700, width: 0.6),
+          ),
         ),
       ),
     ],
@@ -338,13 +389,15 @@ class _InfoGrid extends StatelessWidget {
     final receipts = submission.receipts;
     final firstReceipt = receipts.isNotEmpty ? receipts.first : null;
 
-    String driver = submission.driverSnapshot ??
+    String driver =
+        submission.driverSnapshot ??
         firstReceipt?.driverSnapshot ??
         submission.driverId ??
         '-';
     if (driver.trim().isEmpty) driver = '-';
 
-    String vehicle = submission.vehicleSnapshot ??
+    String vehicle =
+        submission.vehicleSnapshot ??
         firstReceipt?.vehicleSnapshot ??
         submission.vehicleId ??
         '-';
@@ -363,6 +416,13 @@ class _InfoGrid extends StatelessWidget {
           _InfoRow(
             label: 'Total Troli',
             value: submission.trolleyCodes.length.toString(),
+          ),
+          const SizedBox(height: 10),
+          _InfoRow(
+            label: 'Nomor Keberangkatan',
+            value: SubmissionSummaryPage._formatSequence(
+              submission.sequenceNumber,
+            ),
           ),
           const SizedBox(height: 10),
           _InfoRow(
@@ -397,7 +457,7 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 140,
+          width: 160,
           child: Text(
             label,
             style: theme.textTheme.bodySmall?.copyWith(
@@ -420,13 +480,9 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _ReceiptCard extends StatelessWidget {
-  const _ReceiptCard({
-    required this.receipt,
-    required this.onExport,
-  });
+  const _ReceiptCard({required this.receipt});
 
   final MovementReceipt receipt;
-  final Future<void> Function() onExport;
 
   Color _statusColor(BuildContext context) {
     switch (receipt.status.toLowerCase()) {
@@ -463,8 +519,10 @@ class _ReceiptCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _statusColor(context).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(999),
@@ -483,7 +541,9 @@ class _ReceiptCard extends StatelessWidget {
           const SizedBox(height: 12),
           _InfoRow(
             label: 'Nomor Urut',
-            value: SubmissionSummaryPage._formatSequence(receipt.sequenceNumber),
+            value: SubmissionSummaryPage._formatSequence(
+              receipt.sequenceNumber,
+            ),
           ),
           const SizedBox(height: 8),
           _InfoRow(
@@ -494,37 +554,24 @@ class _ReceiptCard extends StatelessWidget {
             const SizedBox(height: 8),
             _InfoRow(
               label: 'Waktu Masuk',
-              value:
-                  SubmissionSummaryPage._formatDateTime(receipt.checkedInAt),
+              value: SubmissionSummaryPage._formatDateTime(receipt.checkedInAt),
             ),
           ],
           if ((receipt.destination ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
-            _InfoRow(label: 'Tujuan / Lokasi', value: receipt.destination ?? '-'),
+            _InfoRow(
+              label: 'Tujuan / Lokasi',
+              value: receipt.destination ?? '-',
+            ),
           ],
           if ((receipt.driverSnapshot ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
-            _InfoRow(
-              label: 'Driver',
-              value: receipt.driverSnapshot ?? '-',
-            ),
+            _InfoRow(label: 'Driver', value: receipt.driverSnapshot ?? '-'),
           ],
           if ((receipt.vehicleSnapshot ?? '').isNotEmpty) ...[
             const SizedBox(height: 8),
-            _InfoRow(
-              label: 'Kendaraan',
-              value: receipt.vehicleSnapshot ?? '-',
-            ),
+            _InfoRow(label: 'Kendaraan', value: receipt.vehicleSnapshot ?? '-'),
           ],
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: onExport,
-              icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: const Text('Export PDF'),
-            ),
-          ),
         ],
       ),
     );

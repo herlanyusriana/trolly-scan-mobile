@@ -33,7 +33,8 @@ class _RegisterPageState extends State<RegisterPage> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state.status == AuthStatus.registered) {
-          final message = state.info ?? 'Registrasi berhasil. Menunggu persetujuan admin.';
+          final message =
+              state.info ?? 'Registrasi berhasil. Menunggu persetujuan admin.';
           showDialog<void>(
             context: context,
             builder: (_) => AlertDialog(
@@ -74,12 +75,16 @@ class _RegisterPageState extends State<RegisterPage> {
                 children: [
                   Text(
                     'Registrasi Operator',
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Setelah mendaftar, akun Anda perlu disetujui admin sebelum bisa login.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   _RegisterTextField(
@@ -142,7 +147,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (phone.isEmpty && email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi minimal salah satu: nomor telepon atau email.')),
+        const SnackBar(
+          content: Text('Isi minimal salah satu: nomor telepon atau email.'),
+        ),
       );
       return;
     }
@@ -184,9 +191,7 @@ class _RegisterTextField extends StatelessWidget {
         prefixIcon: Icon(icon, color: theme.colorScheme.primary),
         filled: true,
         fillColor: theme.colorScheme.surface,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

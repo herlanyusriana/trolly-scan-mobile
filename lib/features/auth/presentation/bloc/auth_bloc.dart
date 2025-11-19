@@ -11,6 +11,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onLogin);
     on<AuthRegisterRequested>(_onRegister);
     on<AuthLogout>(_onLogout);
+    on<AuthSessionChecked>(_onSessionChecked);
   }
 
   final AuthRepository _repository;
@@ -45,22 +46,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     result.match(
       (error) => emit(state.copyWith(status: AuthStatus.failure, error: error)),
-      (message) => emit(state.copyWith(status: AuthStatus.registered, info: message)),
+      (message) =>
+          emit(state.copyWith(status: AuthStatus.registered, info: message)),
     );
   }
 
-  void _onLogout(AuthLogout event, Emitter<AuthState> emit) {
+  Future<void> _onLogout(AuthLogout event, Emitter<AuthState> emit) async {
+    await _repository.clearSession();
     emit(const AuthState(status: AuthStatus.initial));
+  }
+
+  Future<void> _onSessionChecked(
+    AuthSessionChecked event,
+    Emitter<AuthState> emit,
+  ) async {
+    final savedUser = _repository.readSavedUser();
+    if (savedUser != null) {
+      emit(state.copyWith(status: AuthStatus.success, user: savedUser));
+    } else {
+      emit(const AuthState(status: AuthStatus.initial));
+    }
   }
 }
 
 extension AuthBlocX on AuthBloc {
   void login({required String identity, required String password}) {
-    add(AuthLoginRequested(LoginRequest(identity: identity, password: password)));
+    add(
+      AuthLoginRequested(LoginRequest(identity: identity, password: password)),
+    );
   }
 
   void logout() {
     add(const AuthLogout());
+  }
+
+  void checkSession() {
+    add(const AuthSessionChecked());
   }
 
   void register({
@@ -70,12 +91,16 @@ extension AuthBlocX on AuthBloc {
     required String password,
     required String confirmPassword,
   }) {
-    add(AuthRegisterRequested(RegisterRequest(
-      name: name,
-      phone: (phone?.isEmpty ?? true) ? null : phone,
-      email: (email?.isEmpty ?? true) ? null : email,
-      password: password,
-      passwordConfirmation: confirmPassword,
-    )));
+    add(
+      AuthRegisterRequested(
+        RegisterRequest(
+          name: name,
+          phone: (phone?.isEmpty ?? true) ? null : phone,
+          email: (email?.isEmpty ?? true) ? null : email,
+          password: password,
+          passwordConfirmation: confirmPassword,
+        ),
+      ),
+    );
   }
 }
