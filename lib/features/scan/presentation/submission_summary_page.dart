@@ -5,6 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../../core/config/app_router.dart';
+import '../../../core/theme/layout_constants.dart';
 import '../domain/entities/movement_receipt.dart';
 import '../domain/entities/trolley_submission.dart';
 
@@ -23,6 +24,10 @@ class SubmissionSummaryPage extends StatelessWidget {
     return DateFormat('dd MMM yyyy HH:mm').format(value.toLocal());
   }
 
+  static bool _shouldUseSequenceNumber(String status) {
+    return status.toLowerCase() != 'in';
+  }
+
   Future<void> _exportSubmissionPdf(
     BuildContext context,
     List<MovementReceipt> receipts,
@@ -35,6 +40,11 @@ class SubmissionSummaryPage extends StatelessWidget {
     }
 
     final doc = pw.Document();
+    final showSequenceNumber =
+        SubmissionSummaryPage._shouldUseSequenceNumber(submission.status);
+    final submissionSequenceLabel = showSequenceNumber
+        ? SubmissionSummaryPage._formatSequence(submission.sequenceNumber)
+        : null;
     final driver =
         submission.driverSnapshot ??
         receipts.first.driverSnapshot ??
@@ -82,16 +92,18 @@ class SubmissionSummaryPage extends StatelessWidget {
                 ],
               ),
             ),
-            _buildPdfRow(
-              'Nomor Urut',
-              _formatSequence(submission.sequenceNumber),
-            ),
+            if (showSequenceNumber && submissionSequenceLabel != null)
+              _buildPdfRow('Nomor Urut', submissionSequenceLabel),
             _buildPdfRow('Tujuan / Lokasi', destination),
             _buildPdfRow('Driver', driver),
             _buildPdfRow('Kendaraan', vehicle),
             _buildPdfRow('Jumlah Troli', receipts.length.toString()),
             pw.SizedBox(height: 24),
-            _buildCombinedTable(receipts, destination),
+            _buildCombinedTable(
+              receipts,
+              destination,
+              showSequenceNumber: showSequenceNumber,
+            ),
             pw.SizedBox(height: 32),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -106,8 +118,9 @@ class SubmissionSummaryPage extends StatelessWidget {
     );
 
     try {
-      final filename =
-          'surat-jalan-${_formatSequence(submission.sequenceNumber)}.pdf';
+      final filename = submissionSequenceLabel != null
+          ? 'surat-jalan-$submissionSequenceLabel.pdf'
+          : 'surat-jalan.pdf';
       await Printing.sharePdf(bytes: await doc.save(), filename: filename);
     } catch (error) {
       if (!context.mounted) return;
@@ -119,23 +132,31 @@ class SubmissionSummaryPage extends StatelessWidget {
 
   static pw.Widget _buildCombinedTable(
     List<MovementReceipt> receipts,
-    String fallbackDestination,
-  ) {
+    String fallbackDestination, {
+    required bool showSequenceNumber,
+  }) {
+    final columnWidths = <int, pw.TableColumnWidth>{};
+    var columnIndex = 0;
+    void addWidth(pw.TableColumnWidth width) {
+      columnWidths[columnIndex] = width;
+      columnIndex++;
+    }
+
+    if (showSequenceNumber) addWidth(const pw.FixedColumnWidth(36));
+    addWidth(const pw.FixedColumnWidth(80));
+    addWidth(const pw.FixedColumnWidth(90));
+    addWidth(const pw.FixedColumnWidth(70));
+    addWidth(const pw.FlexColumnWidth());
+    addWidth(const pw.FixedColumnWidth(120));
+
     return pw.Table(
       border: pw.TableBorder.all(color: pdf.PdfColors.grey600, width: 0.7),
-      columnWidths: {
-        0: const pw.FixedColumnWidth(36),
-        1: const pw.FixedColumnWidth(80),
-        2: const pw.FixedColumnWidth(90),
-        3: const pw.FixedColumnWidth(70),
-        4: const pw.FlexColumnWidth(),
-        5: const pw.FixedColumnWidth(120),
-      },
+      columnWidths: columnWidths,
       children: [
         pw.TableRow(
           decoration: const pw.BoxDecoration(color: pdf.PdfColors.grey200),
           children: [
-            _tableHeaderCell('No.'),
+            if (showSequenceNumber) _tableHeaderCell('No.'),
             _tableHeaderCell('Kode'),
             _tableHeaderCell('Jenis'),
             _tableHeaderCell('Status'),
@@ -150,7 +171,8 @@ class SubmissionSummaryPage extends StatelessWidget {
           ].join('\n');
           return pw.TableRow(
             children: [
-              _tableCell(_formatSequence(receipt.sequenceNumber)),
+              if (showSequenceNumber)
+                _tableCell(_formatSequence(receipt.sequenceNumber)),
               _tableCell(receipt.code),
               _tableCell(receipt.trolleyKind ?? '-'),
               _tableCell(receipt.status.toUpperCase()),
@@ -167,7 +189,12 @@ class SubmissionSummaryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final receipts = submission.receipts;
-    final sequenceLabel = _formatSequence(submission.sequenceNumber);
+    final showSequenceNumber =
+        SubmissionSummaryPage._shouldUseSequenceNumber(submission.status);
+    final sequenceLabel = showSequenceNumber
+        ? SubmissionSummaryPage._formatSequence(submission.sequenceNumber)
+        : null;
+    final statusLabel = submission.status.toUpperCase();
     final printableReceipts = receipts.isNotEmpty
         ? receipts
         : submission.trolleyCodes
@@ -187,7 +214,11 @@ class SubmissionSummaryPage extends StatelessWidget {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          padding: LayoutConstants.pagePadding(
+            context,
+            horizontalScale: 0.85,
+            verticalScale: 0.85,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -221,7 +252,9 @@ class SubmissionSummaryPage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Urutan Keberangkatan #$sequenceLabel',
+                            showSequenceNumber
+                                ? 'Urutan Keberangkatan #$sequenceLabel'
+                                : 'Status Pengiriman $statusLabel',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
@@ -240,7 +273,10 @@ class SubmissionSummaryPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              _InfoGrid(submission: submission),
+              _InfoGrid(
+                submission: submission,
+                showSequenceNumber: showSequenceNumber,
+              ),
               const SizedBox(height: 24),
               Text(
                 'Detail Troli',
@@ -265,7 +301,10 @@ class SubmissionSummaryPage extends StatelessWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (context, index) {
                           final receipt = receipts[index];
-                          return _ReceiptCard(receipt: receipt);
+                          return _ReceiptCard(
+                            receipt: receipt,
+                            showSequenceNumber: showSequenceNumber,
+                          );
                         },
                       ),
               ),
@@ -285,7 +324,11 @@ class SubmissionSummaryPage extends StatelessWidget {
                   onPressed: () =>
                       _exportSubmissionPdf(context, printableReceipts),
                   icon: const Icon(Icons.picture_as_pdf_outlined),
-                  label: Text('Cetak Surat Jalan Urutan $sequenceLabel'),
+                  label: Text(
+                    showSequenceNumber
+                        ? 'Cetak Surat Jalan Urutan $sequenceLabel'
+                        : 'Cetak Surat Jalan',
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -379,13 +422,16 @@ pw.Widget _signatureBlock(String title) {
 }
 
 class _InfoGrid extends StatelessWidget {
-  const _InfoGrid({required this.submission});
+  const _InfoGrid({
+    required this.submission,
+    this.showSequenceNumber = true,
+  });
 
   final TrolleySubmission submission;
+  final bool showSequenceNumber;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final receipts = submission.receipts;
     final firstReceipt = receipts.isNotEmpty ? receipts.first : null;
 
@@ -418,13 +464,15 @@ class _InfoGrid extends StatelessWidget {
             value: submission.trolleyCodes.length.toString(),
           ),
           const SizedBox(height: 10),
-          _InfoRow(
-            label: 'Nomor Keberangkatan',
-            value: SubmissionSummaryPage._formatSequence(
-              submission.sequenceNumber,
+          if (showSequenceNumber) ...[
+            _InfoRow(
+              label: 'Nomor Keberangkatan',
+              value: SubmissionSummaryPage._formatSequence(
+                submission.sequenceNumber,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
           _InfoRow(
             label: 'Tujuan / Lokasi',
             value: submission.destination ?? '-',
@@ -480,9 +528,13 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _ReceiptCard extends StatelessWidget {
-  const _ReceiptCard({required this.receipt});
+  const _ReceiptCard({
+    required this.receipt,
+    this.showSequenceNumber = true,
+  });
 
   final MovementReceipt receipt;
+  final bool showSequenceNumber;
 
   Color _statusColor(BuildContext context) {
     switch (receipt.status.toLowerCase()) {
@@ -539,13 +591,15 @@ class _ReceiptCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(
-            label: 'Nomor Urut',
-            value: SubmissionSummaryPage._formatSequence(
-              receipt.sequenceNumber,
+          if (showSequenceNumber) ...[
+            _InfoRow(
+              label: 'Nomor Urut',
+              value: SubmissionSummaryPage._formatSequence(
+                receipt.sequenceNumber,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
           _InfoRow(
             label: 'Waktu Keluar',
             value: SubmissionSummaryPage._formatDateTime(receipt.checkedOutAt),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
@@ -6,6 +7,8 @@ import '../../features/history/presentation/history_page.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/scan/presentation/scan_page.dart';
 import '../../features/scan/presentation/scan_summary_page.dart';
+import '../storage/session_storage.dart';
+import '../../features/home/presentation/cubit/departure_history_cubit.dart';
 
 class AppRouter {
   static const String login = '/login';
@@ -44,7 +47,12 @@ class AppRouter {
         );
       case history:
         return MaterialPageRoute<void>(
-          builder: (_) => const HistoryPage(),
+          builder: (context) => BlocProvider<DepartureHistoryCubit>(
+            create: (_) => DepartureHistoryCubit(
+              context.read<SessionStorage>(),
+            )..loadHistory(),
+            child: const HistoryPage(),
+          ),
           settings: settings,
         );
       default:

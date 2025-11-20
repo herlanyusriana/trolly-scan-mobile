@@ -18,6 +18,6 @@ abstract class TrolleyRepository {
     String? vehicleSnapshot,
     String? driverSnapshot,
     required String status, // 'in' atau 'out'
-    required int departureNumber,
+    int? departureNumber,
   });
 }

@@ -145,7 +145,7 @@ class _ScanCameraPageState extends State<ScanCameraPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.55),
+                      color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
@@ -181,7 +181,7 @@ class _ScanCameraPageState extends State<ScanCameraPage> {
                       child: OutlinedButton.icon(
                         onPressed: _addManualCode,
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.black.withOpacity(0.45),
+                          backgroundColor: Colors.black.withValues(alpha: 0.45),
                         ),
                         icon: const Icon(Icons.edit_note_rounded),
                         label: const Text('Input Manual'),
@@ -222,7 +222,7 @@ class _ScannerOverlay extends StatelessWidget {
       ignoring: true,
       child: Stack(
         children: [
-          Container(color: Colors.black.withOpacity(0.25)),
+          Container(color: Colors.black.withValues(alpha: 0.25)),
           Center(
             child: Container(
               width: MediaQuery.of(context).size.width * 0.75,
@@ -258,7 +258,7 @@ class _ScannerOverlay extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.45),
+                      color: Colors.black.withValues(alpha: 0.45),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(

@@ -74,7 +74,7 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
     String? vehicleSnapshot,
     String? driverSnapshot,
     required String status,
-    required int departureNumber,
+    int? departureNumber,
   }) async {
     try {
       final uniqueCodes = trolleyCodes
@@ -117,6 +117,9 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
       final trimmedDriverSnapshot = driverSnapshot?.trim();
 
       if (normalizedStatus == 'out') {
+        if (departureNumber == null) {
+          return left('Nomor keberangkatan wajib diisi untuk status OUT.');
+        }
         final alreadyOut = uniqueCodes
             .where((code) => codeToTrolley[code]?.status == 'out')
             .toList();
@@ -164,7 +167,8 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
                 ? trimmedDestination
                 : 'Tidak diketahui',
           if (isOut) 'expected_return_at': null,
-          if (isOut) 'sequence_number': departureNumber,
+          if (isOut && departureNumber != null)
+            'sequence_number': departureNumber,
           if (vehicleId != null)
             'vehicle_id': int.tryParse(vehicleId) ?? vehicleId,
           if (driverId != null) 'driver_id': int.tryParse(driverId) ?? driverId,

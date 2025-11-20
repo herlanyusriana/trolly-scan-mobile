@@ -1,6 +1,6 @@
 class AppConfig {
   AppConfig._();
 
-  static const String baseUrl =
-      'https://trolly.nooneasku.online'; // TODO: Replace with actual Laravel base url
+  /// Base URL of the Laravel backend that handles authentication and scan data.
+  static const String baseUrl = 'https://trolly.nooneasku.online';
 }

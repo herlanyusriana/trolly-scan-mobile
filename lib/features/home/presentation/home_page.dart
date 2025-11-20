@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/config/app_router.dart';
+import '../../../core/theme/layout_constants.dart';
 import '../../../core/storage/session_storage.dart';
 import '../../auth/domain/entities/mobile_user.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
@@ -44,135 +46,148 @@ class _HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset('assets/logo_gci.png', height: 32, fit: BoxFit.contain),
-            const SizedBox(width: 12),
-            const Text('Geum Cheon Trolly'),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await SystemNavigator.pop();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Row(
+            children: [
+              Image.asset(
+                'assets/logo_gci.png',
+                height: 32,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(width: 12),
+              const Text('Geum Cheon Trolly'),
+            ],
+          ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Perbarui data',
+              onPressed: () {
+                context.read<TrolleySummaryCubit>().loadSummary();
+                context.read<DepartureHistoryCubit>().loadHistory();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+              onPressed: () {
+                context.read<AuthBloc>().logout();
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  AppRouter.login,
+                  (route) => false,
+                );
+              },
+            ),
           ],
         ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Perbarui data',
-            onPressed: () {
-              context.read<TrolleySummaryCubit>().loadSummary();
-              context.read<DepartureHistoryCubit>().loadHistory();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () {
-              context.read<AuthBloc>().logout();
-              Navigator.of(
-                context,
-              ).pushNamedAndRemoveUntil(AppRouter.login, (route) => false);
-            },
-          ),
-        ],
-      ),
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, authState) {
-          final user = authState.user;
-          final displayName = _resolveDisplayName(user);
-          final shiftLabel = _resolveShiftLabel(user);
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, authState) {
+            final user = authState.user;
+            final displayName = _resolveDisplayName(user);
+            final shiftLabel = _resolveShiftLabel(user);
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              await context.read<TrolleySummaryCubit>().loadSummary();
-              context.read<DepartureHistoryCubit>().loadHistory();
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 32,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Halo, $displayName',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      shiftLabel,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                Navigator.of(context).pushNamed(AppRouter.scan),
-                            icon: const Icon(Icons.qr_code_scanner_rounded),
-                            label: const Text('Scan Trolley'),
-                          ),
+            return RefreshIndicator(
+              onRefresh: () async {
+                final summaryCubit = context.read<TrolleySummaryCubit>();
+                final historyCubit = context.read<DepartureHistoryCubit>();
+                await summaryCubit.loadSummary();
+                historyCubit.loadHistory();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: LayoutConstants.pagePadding(context),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Halo, $displayName',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pushNamed(AppRouter.history),
-                            icon: const Icon(Icons.history_rounded),
-                            label: const Text('History'),
-                          ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        shiftLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white70,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Ringkasan Troli',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    const _TrolleySummarySection(),
-                    const SizedBox(height: 32),
-                    Text(
-                      'Urutan Keberangkatan',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const _DepartureTimelineSection(),
-                    const SizedBox(height: 24),
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      const SizedBox(height: 24),
+                      Row(
                         children: [
-                          Icon(
-                            Icons.assignment_outlined,
-                            color: theme.colorScheme.primary,
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).pushNamed(AppRouter.scan),
+                              icon: const Icon(Icons.qr_code_scanner_rounded),
+                              label: const Text('Scan Trolley'),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Surat jalan akan tersedia setelah submit',
-                            style: theme.textTheme.bodySmall,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () =>
+                                  Navigator.of(context).pushNamed(
+                                AppRouter.history,
+                              ),
+                              icon: const Icon(Icons.history_rounded),
+                              label: const Text('History'),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 32),
+                      Text(
+                        'Ringkasan Troli',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const _TrolleySummarySection(),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Urutan Keberangkatan',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const _DepartureTimelineSection(),
+                      const SizedBox(height: 24),
+                      Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.assignment_outlined,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Surat jalan akan tersedia setelah submit',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

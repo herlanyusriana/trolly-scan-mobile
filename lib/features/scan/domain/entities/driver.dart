@@ -9,12 +9,23 @@ Object _idToJson(String value) => value;
 @freezed
 class Driver with _$Driver {
   const factory Driver({
-    @JsonKey(fromJson: _idFromJson, toJson: _idToJson) required String id,
+    required String id,
     required String name,
     String? phone,
-    @JsonKey(name: 'license_number') String? licenseNumber,
+    String? licenseNumber,
     required String status,
   }) = _Driver;
+
+  // ignore: unused_element
+  const Driver._();
+
+  @override
+  @JsonKey(fromJson: _idFromJson, toJson: _idToJson)
+  String get id;
+
+  @override
+  @JsonKey(name: 'license_number')
+  String? get licenseNumber;
 
   factory Driver.fromJson(Map<String, dynamic> json) => _$DriverFromJson(json);
 }

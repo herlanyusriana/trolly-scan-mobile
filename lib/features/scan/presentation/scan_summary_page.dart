@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/config/app_router.dart';
+import '../../../core/theme/layout_constants.dart';
 import 'bloc/scan_bloc.dart';
 import 'bloc/scan_event.dart';
 import 'bloc/scan_state.dart';
@@ -44,10 +45,12 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
 
   void _submit(BuildContext context, ScanState state) {
     final departureNumber = state.departureNumber;
-    if (departureNumber == null) {
+    if (_status == 'out' && departureNumber == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Pilih nomor keberangkatan terlebih dahulu.'),
+          content: Text(
+            'Nomor urutan keberangkatan wajib diisi untuk status OUT.',
+          ),
         ),
       );
       return;
@@ -114,7 +117,7 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
             ? driverSnapshot
             : null,
         status: _status,
-        departureNumber: departureNumber,
+        departureNumber: _status == 'out' ? departureNumber : null,
       ),
     );
   }
@@ -166,231 +169,272 @@ class _ScanSummaryPageState extends State<ScanSummaryPage> {
             title: const Text('Konfirmasi Scan'),
             centerTitle: true,
           ),
-          body: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isMastersLoading)
-                  const LinearProgressIndicator(minHeight: 3),
-                if (hasMastersError && state.mastersError != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 12),
-                    child: Text(
-                      'Gagal memuat master data: ${state.mastersError}',
-                      style: const TextStyle(color: Colors.redAccent),
+          body: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final padding = LayoutConstants.pagePadding(context);
+                final scrollPadding = padding.copyWith(
+                  bottom: padding.bottom + 20,
+                );
+                final availableHeight = constraints.maxHeight.isFinite
+                    ? (constraints.maxHeight - padding.vertical)
+                    : 0.0;
+
+                return SingleChildScrollView(
+                  padding: scrollPadding,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: availableHeight > 0 ? availableHeight : 0,
                     ),
-                  ),
-                _SummaryCard(
-                  title: 'Items Scanned',
-                  child: scannedCodes.isEmpty
-                      ? const Text(
-                          'Belum ada data troli. Kembali dan scan ulang.',
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: scannedCodes
-                              .map(
-                                (code) => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  child: Text('- $code'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isMastersLoading)
+                          const LinearProgressIndicator(minHeight: 3),
+                        if (hasMastersError && state.mastersError != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8, bottom: 12),
+                            child: Text(
+                              'Gagal memuat master data: ${state.mastersError}',
+                              style: const TextStyle(color: Colors.redAccent),
+                            ),
+                          ),
+                        _SummaryCard(
+                          title: 'Items Scanned',
+                          child: scannedCodes.isEmpty
+                              ? const Text(
+                                  'Belum ada data troli. Kembali dan scan ulang.',
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: scannedCodes
+                                      .map(
+                                        (code) => Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 4,
+                                          ),
+                                          child: Text('- $code'),
+                                        ),
+                                      )
+                                      .toList(),
                                 ),
-                              )
-                              .toList(),
                         ),
-                ),
-                const SizedBox(height: 16),
-                _SummaryCard(
-                  title: 'Informasi Operasional',
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.flag_outlined),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Nomor Keberangkatan: $departureLabel',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _status == 'out'
-                                  ? 'Tujuan Keberangkatan'
-                                  : 'Lokasi Pengembalian',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white70,
+                        const SizedBox(height: 16),
+                        _SummaryCard(
+                          title: 'Informasi Operasional',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.flag_outlined),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Nomor Keberangkatan: $departureLabel',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Text(
-                              _status == 'out' ? 'LG' : 'GCI',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+                              const SizedBox(height: 16),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _status == 'out'
+                                            ? 'Tujuan Keberangkatan'
+                                            : 'Lokasi Pengembalian',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      _status == 'out' ? 'LG' : 'GCI',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedVehicleValue,
-                        decoration: const InputDecoration(
-                          labelText: 'Kendaraan',
-                        ),
-                        items: [
-                          const DropdownMenuItem(
-                            value: _noneVehicleValue,
-                            child: Text('Pilih kendaraan (opsional)'),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                key: ValueKey('vehicle-$_selectedVehicleValue'),
+                                initialValue: _selectedVehicleValue,
+                                decoration: const InputDecoration(
+                                  labelText: 'Kendaraan',
+                                ),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: _noneVehicleValue,
+                                    child: Text('Pilih kendaraan (opsional)'),
+                                  ),
+                                  const DropdownMenuItem(
+                                    value: _manualVehicleValue,
+                                    child: Text('Masukkan manual'),
+                                  ),
+                                  ...state.vehicles.map(
+                                    (vehicle) => DropdownMenuItem(
+                                      value: vehicle.id,
+                                      child: Text(
+                                        [
+                                          vehicle.plateNumber,
+                                          if (vehicle.name != null &&
+                                              vehicle.name!.isNotEmpty)
+                                            '(${vehicle.name})',
+                                        ].join(' '),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedVehicleValue =
+                                        value ?? _noneVehicleValue;
+                                  });
+                                },
+                              ),
+                              if (_selectedVehicleValue ==
+                                  _manualVehicleValue)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: TextField(
+                                    controller: _vehicleManualController,
+                                    textCapitalization:
+                                        TextCapitalization.characters,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Plat kendaraan (manual)',
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                key: ValueKey('driver-$_selectedDriverValue'),
+                                initialValue: _selectedDriverValue,
+                                decoration:
+                                    const InputDecoration(labelText: 'Driver'),
+                                items: [
+                                  const DropdownMenuItem(
+                                    value: _noneDriverValue,
+                                    child: Text('Pilih driver (opsional)'),
+                                  ),
+                                  const DropdownMenuItem(
+                                    value: _manualDriverValue,
+                                    child: Text('Masukkan manual'),
+                                  ),
+                                  ...state.drivers.map(
+                                    (driver) => DropdownMenuItem(
+                                      value: driver.id,
+                                      child: Text(driver.name),
+                                    ),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedDriverValue =
+                                        value ?? _noneDriverValue;
+                                  });
+                                },
+                              ),
+                              if (_selectedDriverValue == _manualDriverValue)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: TextField(
+                                    controller: _driverManualController,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Nama driver (manual)',
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 16),
+                              Wrap(
+                                spacing: 12,
+                                children: [
+                                  ChoiceChip(
+                                    label: const Text('OUT'),
+                                    selected: _status == 'out',
+                                    onSelected: (value) {
+                                      if (value) _changeStatus('out');
+                                    },
+                                  ),
+                                  ChoiceChip(
+                                    label: const Text('IN'),
+                                    selected: _status == 'in',
+                                    onSelected: (value) {
+                                      if (value) _changeStatus('in');
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const DropdownMenuItem(
-                            value: _manualVehicleValue,
-                            child: Text('Masukkan manual'),
-                          ),
-                          ...state.vehicles.map(
-                            (vehicle) => DropdownMenuItem(
-                              value: vehicle.id,
+                        ),
+                        const SizedBox(height: 24),
+                        if (state.status == ScanStatus.failure &&
+                            state.error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC2626)
+                                    .withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: Text(
-                                [
-                                  vehicle.plateNumber,
-                                  if (vehicle.name != null &&
-                                      vehicle.name!.isNotEmpty)
-                                    '(${vehicle.name})',
-                                ].join(' '),
+                                state.error!,
+                                style: const TextStyle(color: Colors.redAccent),
                               ),
                             ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedVehicleValue = value ?? _noneVehicleValue;
-                          });
-                        },
-                      ),
-                      if (_selectedVehicleValue == _manualVehicleValue)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: TextField(
-                            controller: _vehicleManualController,
-                            textCapitalization: TextCapitalization.characters,
-                            decoration: const InputDecoration(
-                              labelText: 'Plat kendaraan (manual)',
-                            ),
-                          ),
+                          )
+                        else
+                          const SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: scannedCodes.isEmpty || isSubmitting
+                              ? null
+                              : () => _submit(context, state),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Kirim & Buat Surat Jalan'),
                         ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedDriverValue,
-                        decoration: const InputDecoration(labelText: 'Driver'),
-                        items: [
-                          const DropdownMenuItem(
-                            value: _noneDriverValue,
-                            child: Text('Pilih driver (opsional)'),
-                          ),
-                          const DropdownMenuItem(
-                            value: _manualDriverValue,
-                            child: Text('Masukkan manual'),
-                          ),
-                          ...state.drivers.map(
-                            (driver) => DropdownMenuItem(
-                              value: driver.id,
-                              child: Text(driver.name),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedDriverValue = value ?? _noneDriverValue;
-                          });
-                        },
-                      ),
-                      if (_selectedDriverValue == _manualDriverValue)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: TextField(
-                            controller: _driverManualController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nama driver (manual)',
-                            ),
-                          ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          child: const Text('Kembali'),
                         ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          ChoiceChip(
-                            label: const Text('OUT'),
-                            selected: _status == 'out',
-                            onSelected: (value) {
-                              if (value) _changeStatus('out');
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          ChoiceChip(
-                            label: const Text('IN'),
-                            selected: _status == 'in',
-                            onSelected: (value) {
-                              if (value) _changeStatus('in');
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (state.status == ScanStatus.failure && state.error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626).withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        state.error!,
-                        style: const TextStyle(color: Colors.redAccent),
-                      ),
+                      ],
                     ),
-                  )
-                else
-                  const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: scannedCodes.isEmpty || isSubmitting
-                      ? null
-                      : () => _submit(context, state),
-                  child: isSubmitting
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Kirim & Buat Surat Jalan'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                  child: const Text('Kembali'),
-                ),
-              ],
+                  ),
+                );
+              },
             ),
           ),
         );

@@ -121,6 +121,15 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     Emitter<ScanState> emit,
   ) async {
     if (state.scannedCodes.isEmpty) return;
+    if (event.status == 'out' && event.departureNumber == null) {
+      emit(
+        state.copyWith(
+          status: ScanStatus.failure,
+          error: 'Nomor keberangkatan wajib diisi untuk status OUT.',
+        ),
+      );
+      return;
+    }
 
     emit(state.copyWith(status: ScanStatus.submitting));
 

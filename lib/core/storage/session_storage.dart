@@ -14,6 +14,7 @@ class SessionStorage {
   static const _pendingCodesKey = 'session.scan.pending_codes';
   static const _submissionHistoryKey = 'session.scan.history';
   static const _departureNumberKey = 'session.scan.departure_number';
+  static const _departureSavedAtKey = 'session.scan.departure_saved_at';
 
   MobileUser? readUser() {
     final payload = _preferences.getString(_authUserKey);
@@ -52,15 +53,46 @@ class SessionStorage {
   }
 
   int? readDepartureNumber() {
-    return _preferences.getInt(_departureNumberKey);
+    final stored = _preferences.getInt(_departureNumberKey);
+    if (stored == null) return null;
+    final savedAtMillis = _preferences.getInt(_departureSavedAtKey);
+    if (savedAtMillis == null) {
+      return null;
+    }
+    final savedAt =
+        DateTime.fromMillisecondsSinceEpoch(savedAtMillis, isUtc: false);
+    final now = DateTime.now();
+    final currentWindowStart = _departureWindowStart(now);
+    if (savedAt.isBefore(currentWindowStart)) {
+      return null;
+    }
+    return stored;
   }
 
   Future<void> saveDepartureNumber(int number) async {
     await _preferences.setInt(_departureNumberKey, number);
+    await _preferences.setInt(
+      _departureSavedAtKey,
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 
   Future<void> clearDepartureNumber() async {
     await _preferences.remove(_departureNumberKey);
+    await _preferences.remove(_departureSavedAtKey);
+  }
+
+  DateTime _departureWindowStart(DateTime reference) {
+    final sixAmToday = DateTime(
+      reference.year,
+      reference.month,
+      reference.day,
+      6,
+    );
+    if (reference.isBefore(sixAmToday)) {
+      return sixAmToday.subtract(const Duration(days: 1));
+    }
+    return sixAmToday;
   }
 
   List<TrolleySubmission> readSubmissionHistory() {

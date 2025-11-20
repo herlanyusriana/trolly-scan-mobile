@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/theme/layout_constants.dart';
 import 'bloc/auth_bloc.dart';
 import 'bloc/auth_state.dart';
 
@@ -69,7 +70,7 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: LayoutConstants.pagePadding(context),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

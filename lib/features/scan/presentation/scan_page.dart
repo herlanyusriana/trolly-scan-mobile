@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/config/app_router.dart';
+import '../../../core/theme/layout_constants.dart';
 import 'bloc/scan_bloc.dart';
 import 'bloc/scan_event.dart';
 import 'bloc/scan_state.dart';
@@ -118,9 +119,6 @@ class _ScanPageState extends State<ScanPage> {
 
   @override
   Widget build(BuildContext context) {
-    final hasDepartureNumber = context.select(
-      (ScanBloc bloc) => bloc.state.departureNumber != null,
-    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan Trolley'),
@@ -129,33 +127,34 @@ class _ScanPageState extends State<ScanPage> {
           IconButton(
             icon: const Icon(Icons.edit_note_rounded),
             tooltip: 'Tambah manual',
-            onPressed: hasDepartureNumber
-                ? () async {
-                    final code = await _showAddCodeDialog(context);
-                    if (!context.mounted) return;
-                    final normalized = parseTrolleyCode(code);
-                    if (normalized != null && normalized.isNotEmpty) {
-                      context.read<ScanBloc>().add(ScanCodeAdded(normalized));
-                    } else if (code != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Kode troli tidak valid.'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  }
-                : null,
+            onPressed: () async {
+              final code = await _showAddCodeDialog(context);
+              if (!context.mounted) return;
+              final normalized = parseTrolleyCode(code);
+              if (normalized != null && normalized.isNotEmpty) {
+                context.read<ScanBloc>().add(ScanCodeAdded(normalized));
+              } else if (code != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Kode troli tidak valid.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
           ),
         ],
       ),
       body: BlocBuilder<ScanBloc, ScanState>(
         builder: (context, state) {
           final theme = Theme.of(context);
-          final hasDepartureNumber = state.departureNumber != null;
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            padding: LayoutConstants.pagePadding(
+              context,
+              horizontalScale: 0.85,
+              verticalScale: 0.85,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -181,9 +180,7 @@ class _ScanPageState extends State<ScanPage> {
                   children: [
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: hasDepartureNumber
-                            ? () => _openScanner(context)
-                            : null,
+                        onPressed: () => _openScanner(context),
                         icon: const Icon(Icons.qr_code_scanner_rounded),
                         label: const Text('Scan QR'),
                       ),
@@ -290,11 +287,10 @@ class _ScanPageState extends State<ScanPage> {
                       child: ElevatedButton(
                         onPressed: state.scannedCodes.isEmpty
                             ? null
-                            : hasDepartureNumber
-                            ? () => Navigator.of(
-                                context,
-                              ).pushNamed(AppRouter.scanSummary)
-                            : null,
+                            : () =>
+                                Navigator.of(context).pushNamed(
+                                  AppRouter.scanSummary,
+                                ),
                         child: const Text('Lanjutkan'),
                       ),
                     ),
@@ -357,50 +353,58 @@ class _DepartureSelector extends StatelessWidget {
         ? departureNumber.toString().padLeft(2, '0')
         : 'Belum dipilih';
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Nomor Keberangkatan',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+    final borderRadius = BorderRadius.circular(18);
+    return Material(
+      color: const Color(0xFF0F172A),
+      borderRadius: borderRadius,
+      child: InkWell(
+        onTap: onPick,
+        borderRadius: borderRadius,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.2),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            numberLabel,
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: departureNumber != null
-                  ? theme.colorScheme.primary
-                  : Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton(
-                onPressed: onPick,
-                child: Text(
-                  departureNumber == null ? 'Pilih Nomor' : 'Ubah Nomor',
+              Text(
+                'Nomor Keberangkatan',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(width: 12),
-              if (departureNumber != null)
-                TextButton(onPressed: onClear, child: const Text('Hapus')),
+              const SizedBox(height: 6),
+              Text(
+                numberLabel,
+                style: theme.textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: departureNumber != null
+                      ? theme.colorScheme.primary
+                      : Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: onPick,
+                    child: Text(
+                      departureNumber == null ? 'Pilih Nomor' : 'Ubah Nomor',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (departureNumber != null)
+                    TextButton(onPressed: onClear, child: const Text('Hapus')),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
