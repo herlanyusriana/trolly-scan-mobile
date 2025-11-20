@@ -493,16 +493,19 @@ class _DepartureCard extends StatelessWidget {
     final sequence = submission.sequenceNumber != null
         ? submission.sequenceNumber!.toString().padLeft(2, '0')
         : '--';
-    final driver =
+    String driver =
         submission.driverSnapshot ??
-        submission.driverId ??
         submission.receipts.firstOrNull?.driverSnapshot ??
+        submission.driverId ??
         '-';
-    final vehicle =
+    if (driver.trim().isEmpty) driver = '-';
+
+    String vehicle =
         submission.vehicleSnapshot ??
-        submission.vehicleId ??
         submission.receipts.firstOrNull?.vehicleSnapshot ??
+        submission.vehicleId ??
         '-';
+    if (vehicle.trim().isEmpty) vehicle = '-';
     final createdAt = DateFormat(
       'dd MMM yyyy HH:mm',
     ).format(submission.createdAt.toLocal());
