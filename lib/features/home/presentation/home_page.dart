@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../../core/config/app_router.dart';
 import '../../../core/theme/layout_constants.dart';
-import '../../../core/storage/session_storage.dart';
 import '../../auth/domain/entities/mobile_user.dart';
 import '../../auth/presentation/bloc/auth_bloc.dart';
 import '../../auth/presentation/bloc/auth_state.dart';
@@ -31,7 +30,7 @@ class HomePage extends StatelessWidget {
         ),
         BlocProvider<DepartureHistoryCubit>(
           create: (context) =>
-              DepartureHistoryCubit(context.read<SessionStorage>())
+              DepartureHistoryCubit(context.read<TrolleyRepository>())
                 ..loadHistory(),
         ),
       ],
@@ -40,16 +39,38 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _HomeView extends StatelessWidget {
+class _HomeView extends StatefulWidget {
   const _HomeView();
+
+  @override
+  State<_HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<_HomeView> {
+  DateTime? _lastBackPressedAt;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBackPressedAt == null ||
+            now.difference(_lastBackPressedAt!) > const Duration(seconds: 2)) {
+          _lastBackPressedAt = now;
+          if (!mounted) return;
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Tekan tombol kembali sekali lagi untuk keluar'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return;
+        }
         await SystemNavigator.pop();
       },
       child: Scaffold(

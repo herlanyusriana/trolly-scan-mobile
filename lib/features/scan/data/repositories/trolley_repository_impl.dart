@@ -66,6 +66,181 @@ class TrolleyRepositoryImpl implements TrolleyRepository {
   }
 
   @override
+  Future<Either<String, List<TrolleySubmission>>> fetchSubmissionHistory({
+    int limit = 50,
+  }) async {
+    List<TrolleySubmission> parseList(dynamic data) {
+      List<dynamic> list;
+      if (data is Map<String, dynamic>) {
+        final candidate = data['data'] ?? data['items'] ?? data['history'];
+        list = candidate is List ? candidate : const [];
+      } else if (data is List) {
+        list = data;
+      } else {
+        list = const [];
+      }
+
+      List<TrolleySubmission> submissions = [];
+      for (final item in list) {
+        if (item is! Map<String, dynamic>) continue;
+
+        String? code;
+        final trolley = item['trolley'];
+        if (trolley is Map<String, dynamic>) {
+          final c = trolley['code'];
+          if (c is String) code = c;
+        }
+        if (code == null) {
+          final c = item['trolley_code'] ?? item['code'];
+          if (c is String) code = c;
+        }
+
+        List<String> trolleyCodes = <String>[];
+        final codes = item['trolley_codes'];
+        if (codes is List) {
+          trolleyCodes = codes.whereType<String>().toList();
+        } else if (code != null) {
+          trolleyCodes = [code];
+        }
+
+        String status = (item['status'] as String?)?.toLowerCase() ?? 'unknown';
+        final destination = (item['destination'] as String?) ??
+            (item['location'] as String?);
+
+        String? vehicleSnapshot;
+        final vSnap = item['vehicle_snapshot'];
+        if (vSnap is String && vSnap.isNotEmpty) vehicleSnapshot = vSnap;
+        if (vehicleSnapshot == null && item['vehicle'] is Map<String, dynamic>) {
+          final plate = (item['vehicle'] as Map<String, dynamic>)['plate_number'];
+          if (plate is String && plate.isNotEmpty) vehicleSnapshot = plate;
+        }
+
+        String? driverSnapshot;
+        final dSnap = item['driver_snapshot'];
+        if (dSnap is String && dSnap.isNotEmpty) driverSnapshot = dSnap;
+        if (driverSnapshot == null && item['driver'] is Map<String, dynamic>) {
+          final name = (item['driver'] as Map<String, dynamic>)['name'];
+          if (name is String && name.isNotEmpty) driverSnapshot = name;
+        }
+
+        int? sequenceNumber;
+        final seq = item['sequence_number'];
+        if (seq is int) sequenceNumber = seq;
+        if (sequenceNumber == null && seq is String) {
+          sequenceNumber = int.tryParse(seq);
+        }
+
+        DateTime? checkedOutAt;
+        final co = item['checked_out_at'];
+        if (co is String) checkedOutAt = DateTime.tryParse(co);
+
+        DateTime? checkedInAt;
+        final ci = item['checked_in_at'];
+        if (ci is String) checkedInAt = DateTime.tryParse(ci);
+
+        DateTime createdAt = DateTime.now();
+        final createdRaw = item['created_at'];
+        DateTime? createdParsed;
+        if (createdRaw is String) createdParsed = DateTime.tryParse(createdRaw);
+        createdAt = createdParsed ?? checkedInAt ?? checkedOutAt ?? createdAt;
+
+        final receipts = <MovementReceipt>[];
+        if (item['receipts'] is List) {
+          for (final r in (item['receipts'] as List)) {
+            if (r is! Map<String, dynamic>) continue;
+            DateTime? rOut;
+            if (r['checked_out_at'] is String) {
+              rOut = DateTime.tryParse(r['checked_out_at'] as String);
+            }
+            DateTime? rIn;
+            if (r['checked_in_at'] is String) {
+              rIn = DateTime.tryParse(r['checked_in_at'] as String);
+            }
+            int? rSeq;
+            final rSeqVal = r['sequence_number'];
+            if (rSeqVal is int) rSeq = rSeqVal;
+            if (rSeq == null && rSeqVal is String) rSeq = int.tryParse(rSeqVal);
+            String rCode = code ?? (r['code'] as String? ?? '');
+            receipts.add(
+              MovementReceipt(
+                code: rCode,
+                status: (r['status'] as String?) ?? status,
+                checkedOutAt: rOut,
+                checkedInAt: rIn,
+                sequenceNumber: rSeq,
+                trolleyKind: r['trolley_kind'] as String?,
+                destination: (r['destination'] as String?) ?? destination,
+                vehicleSnapshot:
+                    (r['vehicle_snapshot'] as String?) ?? vehicleSnapshot,
+                driverSnapshot: (r['driver_snapshot'] as String?) ?? driverSnapshot,
+              ),
+            );
+          }
+        }
+
+        if (receipts.isEmpty && (code != null || trolleyCodes.isNotEmpty)) {
+          receipts.add(
+            MovementReceipt(
+              code: code ?? (trolleyCodes.isNotEmpty ? trolleyCodes.first : ''),
+              status: status,
+              checkedOutAt: checkedOutAt,
+              checkedInAt: checkedInAt,
+              sequenceNumber: sequenceNumber,
+              destination: destination,
+              vehicleSnapshot: vehicleSnapshot,
+              driverSnapshot: driverSnapshot,
+            ),
+          );
+        }
+
+        submissions.add(
+          TrolleySubmission(
+            trolleyCodes: trolleyCodes,
+            destination: destination,
+            vehicleId: null,
+            driverId: null,
+            vehicleSnapshot: vehicleSnapshot,
+            driverSnapshot: driverSnapshot,
+            status: status,
+            createdAt: createdAt,
+            sequenceNumber: sequenceNumber,
+            receipts: receipts,
+            uploaded: true,
+          ),
+        );
+      }
+
+      submissions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return submissions;
+    }
+
+    final endpoints = <String>[
+      '/api/v1/movements',
+      '/api/v1/trolleys/movements',
+      '/api/v1/history',
+    ];
+    for (final path in endpoints) {
+      try {
+        final response = await _client.client.get(
+          path,
+          queryParameters: {'limit': limit},
+        );
+        final data = response.data;
+        final submissions = parseList(data);
+        if (submissions.isNotEmpty) return right(submissions);
+        // If empty but request succeeded, still return right([])
+        return right(submissions);
+      } on DioException {
+        // try next endpoint
+        continue;
+      } catch (error) {
+        return left(error.toString());
+      }
+    }
+    return left('Gagal memuat riwayat dari server.');
+  }
+
+  @override
   Future<Either<String, TrolleySubmission>> submitMovement({
     required List<String> trolleyCodes,
     String? destination,

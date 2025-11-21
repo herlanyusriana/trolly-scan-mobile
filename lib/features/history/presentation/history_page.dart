@@ -127,6 +127,52 @@ class _HistoryPageState extends State<HistoryPage> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (state.error != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              state.error!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: const Color(0xFFEF4444),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () =>
+                                context.read<DepartureHistoryCubit>().loadHistory(),
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (state.error != null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        state.error!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFEF4444),
+                        ),
+                      ),
+                    ),
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(18),
@@ -202,21 +248,45 @@ class _HistoryPageState extends State<HistoryPage> {
                   ),
                   const SizedBox(height: 24),
                   Expanded(
-                    child: filtered.isEmpty
-                        ? _EmptyHistoryState(
-                            hasFilters:
-                                _sequenceController.text.isNotEmpty ||
-                                    _startDate != null ||
-                                    _endDate != null,
-                          )
-                        : ListView.separated(
-                            itemBuilder: (_, index) => _HistorySubmissionTile(
-                              submission: filtered[index],
-                            ),
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 14),
-                            itemCount: filtered.length,
-                          ),
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        await context.read<DepartureHistoryCubit>().loadHistory();
+                      },
+                      child: state.loading
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                SizedBox(height: 160),
+                                Center(child: CircularProgressIndicator()),
+                                SizedBox(height: 160),
+                              ],
+                            )
+                          : filtered.isEmpty
+                              ? ListView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  children: [
+                                    const SizedBox(height: 60),
+                                    _EmptyHistoryState(
+                                      hasFilters:
+                                          _sequenceController.text.isNotEmpty ||
+                                              _startDate != null ||
+                                              _endDate != null,
+                                    ),
+                                  ],
+                                )
+                              : ListView.separated(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  itemBuilder: (_, index) =>
+                                      _HistorySubmissionTile(
+                                    submission: filtered[index],
+                                  ),
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 14),
+                                  itemCount: filtered.length,
+                                ),
+                    ),
                   ),
                 ],
               );

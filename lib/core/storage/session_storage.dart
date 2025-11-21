@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../features/auth/domain/entities/mobile_user.dart';
-import '../../features/scan/domain/entities/trolley_submission.dart';
 
 class SessionStorage {
   SessionStorage(this._preferences);
@@ -12,7 +11,6 @@ class SessionStorage {
 
   static const _authUserKey = 'session.auth.user';
   static const _pendingCodesKey = 'session.scan.pending_codes';
-  static const _submissionHistoryKey = 'session.scan.history';
   static const _departureNumberKey = 'session.scan.departure_number';
   static const _departureSavedAtKey = 'session.scan.departure_saved_at';
 
@@ -95,32 +93,5 @@ class SessionStorage {
     return sixAmToday;
   }
 
-  List<TrolleySubmission> readSubmissionHistory() {
-    final payload = _preferences.getString(_submissionHistoryKey);
-    if (payload == null) return const <TrolleySubmission>[];
-    try {
-      final decoded = jsonDecode(payload);
-      if (decoded is List) {
-        return decoded
-            .whereType<Map<String, dynamic>>()
-            .map(TrolleySubmission.fromJson)
-            .toList();
-      }
-    } catch (_) {
-      return const <TrolleySubmission>[];
-    }
-    return const <TrolleySubmission>[];
-  }
-
-  Future<void> prependSubmission(
-    TrolleySubmission submission, {
-    int maxItems = 20,
-  }) async {
-    final history = readSubmissionHistory();
-    final updated = [submission, ...history].take(maxItems).toList();
-    final encoded = jsonEncode(
-      updated.map((submission) => submission.toJson()).toList(),
-    );
-    await _preferences.setString(_submissionHistoryKey, encoded);
-  }
+  // Offline submission history removed. History now comes from server only.
 }

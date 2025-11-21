@@ -7,8 +7,8 @@ import '../../features/history/presentation/history_page.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/scan/presentation/scan_page.dart';
 import '../../features/scan/presentation/scan_summary_page.dart';
-import '../storage/session_storage.dart';
 import '../../features/home/presentation/cubit/departure_history_cubit.dart';
+import '../../features/scan/domain/repositories/trolley_repository.dart';
 
 class AppRouter {
   static const String login = '/login';
@@ -48,9 +48,9 @@ class AppRouter {
       case history:
         return MaterialPageRoute<void>(
           builder: (context) => BlocProvider<DepartureHistoryCubit>(
-            create: (_) => DepartureHistoryCubit(
-              context.read<SessionStorage>(),
-            )..loadHistory(),
+            create: (_) =>
+                DepartureHistoryCubit(context.read<TrolleyRepository>())
+                  ..loadHistory(),
             child: const HistoryPage(),
           ),
           settings: settings,

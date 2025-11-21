@@ -20,4 +20,10 @@ abstract class TrolleyRepository {
     required String status, // 'in' atau 'out'
     int? departureNumber,
   });
+
+  /// Ambil riwayat pergerakan troli dari server.
+  /// Dikembalikan dalam urutan terbaru terlebih dahulu.
+  Future<Either<String, List<TrolleySubmission>>> fetchSubmissionHistory({
+    int limit = 50,
+  });
 }

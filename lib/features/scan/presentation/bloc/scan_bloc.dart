@@ -168,7 +168,6 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         );
         await _sessionStorage.clearPendingScanCodes();
         await _sessionStorage.clearDepartureNumber();
-        await _sessionStorage.prependSubmission(submission);
       },
     );
   }

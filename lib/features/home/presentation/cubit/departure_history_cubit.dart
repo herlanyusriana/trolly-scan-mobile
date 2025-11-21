@@ -1,17 +1,25 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/storage/session_storage.dart';
 import '../../../scan/domain/entities/trolley_submission.dart';
+import '../../../scan/domain/repositories/trolley_repository.dart';
 import 'departure_history_state.dart';
 
 class DepartureHistoryCubit extends Cubit<DepartureHistoryState> {
-  DepartureHistoryCubit(this._storage) : super(const DepartureHistoryState());
+  DepartureHistoryCubit(this._repository) : super(const DepartureHistoryState());
 
-  final SessionStorage _storage;
+  final TrolleyRepository _repository;
 
-  void loadHistory() {
-    final history = _storage.readSubmissionHistory();
-    emit(state.copyWith(entries: history));
+  Future<void> loadHistory() async {
+    emit(state.copyWith(loading: true, error: null));
+    final result = await _repository.fetchSubmissionHistory(limit: 50);
+    result.match(
+      (err) {
+        emit(state.copyWith(loading: false, error: err));
+      },
+      (remote) async {
+        emit(state.copyWith(entries: remote, loading: false, error: null));
+      },
+    );
   }
 
   void addSubmission(TrolleySubmission submission) {
