@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../features/auth/presentation/forgot_password_page.dart';
 import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/history/presentation/history_page.dart';
@@ -13,6 +14,7 @@ import '../../features/scan/domain/repositories/trolley_repository.dart';
 class AppRouter {
   static const String login = '/login';
   static const String register = '/register';
+  static const String forgotPassword = '/forgot-password';
   static const String home = '/home';
   static const String scan = '/scan';
   static const String scanSummary = '/scan/summary';
@@ -28,6 +30,11 @@ class AppRouter {
       case register:
         return MaterialPageRoute<void>(
           builder: (_) => const RegisterPage(),
+          settings: settings,
+        );
+      case forgotPassword:
+        return MaterialPageRoute<void>(
+          builder: (_) => const ForgotPasswordPage(),
           settings: settings,
         );
       case home:

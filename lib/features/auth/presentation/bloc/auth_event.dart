@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../data/models/login_request.dart';
 import '../../data/models/register_request.dart';
+import '../../data/models/reset_password_request.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -23,6 +24,15 @@ class AuthRegisterRequested extends AuthEvent {
   const AuthRegisterRequested(this.request);
 
   final RegisterRequest request;
+
+  @override
+  List<Object?> get props => [request];
+}
+
+class AuthResetPasswordRequested extends AuthEvent {
+  const AuthResetPasswordRequested(this.request);
+
+  final ResetPasswordRequest request;
 
   @override
   List<Object?> get props => [request];

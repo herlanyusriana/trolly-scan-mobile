@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/models/login_request.dart';
 import '../../data/models/register_request.dart';
+import '../../data/models/reset_password_request.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -10,6 +11,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._repository) : super(const AuthState()) {
     on<AuthLoginRequested>(_onLogin);
     on<AuthRegisterRequested>(_onRegister);
+    on<AuthResetPasswordRequested>(_onResetPassword);
     on<AuthLogout>(_onLogout);
     on<AuthSessionChecked>(_onSessionChecked);
   }
@@ -48,6 +50,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (error) => emit(state.copyWith(status: AuthStatus.failure, error: error)),
       (message) =>
           emit(state.copyWith(status: AuthStatus.registered, info: message)),
+    );
+  }
+
+  Future<void> _onResetPassword(
+    AuthResetPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(state.copyWith(status: AuthStatus.loading, error: null, info: null));
+
+    final result = await _repository.resetPassword(event.request);
+
+    result.match(
+      (error) => emit(state.copyWith(status: AuthStatus.failure, error: error)),
+      (message) =>
+          emit(state.copyWith(status: AuthStatus.passwordReset, info: message)),
     );
   }
 
@@ -97,6 +114,22 @@ extension AuthBlocX on AuthBloc {
           name: name,
           phone: (phone?.isEmpty ?? true) ? null : phone,
           email: (email?.isEmpty ?? true) ? null : email,
+          password: password,
+          passwordConfirmation: confirmPassword,
+        ),
+      ),
+    );
+  }
+
+  void resetPassword({
+    required String identity,
+    required String password,
+    required String confirmPassword,
+  }) {
+    add(
+      AuthResetPasswordRequested(
+        ResetPasswordRequest(
+          identity: identity,
           password: password,
           passwordConfirmation: confirmPassword,
         ),

@@ -4,6 +4,7 @@ import '../../../../core/api/api_client.dart';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/register_request.dart';
+import '../models/reset_password_request.dart';
 
 class AuthRemoteDataSource {
   AuthRemoteDataSource(this._client);
@@ -52,6 +53,26 @@ class AuthRemoteDataSource {
         response: error.response,
         message:
             error.response?.data['message']?.toString() ?? 'Registrasi gagal',
+      );
+    }
+  }
+
+  Future<String> resetPassword(ResetPasswordRequest request) async {
+    try {
+      final response = await _client.client.post<Map<String, dynamic>>(
+        '/api/v1/auth/reset-password',
+        data: request.toJson(),
+      );
+
+      return response.data?['message']?.toString() ??
+          'Kata sandi berhasil diperbarui.';
+    } on DioException catch (error) {
+      throw DioException(
+        requestOptions: error.requestOptions,
+        response: error.response,
+        message:
+            error.response?.data?['message']?.toString() ??
+            'Gagal memperbarui kata sandi',
       );
     }
   }

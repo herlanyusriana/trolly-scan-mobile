@@ -7,6 +7,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
 import '../models/login_request.dart';
 import '../models/register_request.dart';
+import '../models/reset_password_request.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._remoteDataSource, this._sessionStorage);
@@ -39,6 +40,21 @@ class AuthRepositoryImpl implements AuthRepository {
       return right('Registrasi berhasil. Menunggu persetujuan admin.');
     } on DioException catch (error) {
       final message = error.message ?? 'Registrasi gagal.';
+      return left(message);
+    } catch (error) {
+      return left(error.toString());
+    }
+  }
+
+  @override
+  Future<Either<String, String>> resetPassword(
+    ResetPasswordRequest request,
+  ) async {
+    try {
+      final message = await _remoteDataSource.resetPassword(request);
+      return right(message);
+    } on DioException catch (error) {
+      final message = error.message ?? 'Gagal memperbarui kata sandi.';
       return left(message);
     } catch (error) {
       return left(error.toString());

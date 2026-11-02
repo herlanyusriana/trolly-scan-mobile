@@ -123,8 +123,12 @@ class _LoginPageState extends State<LoginPage> {
                   const Spacer(),
                   Center(
                     child: TextButton(
-                      onPressed: isLoading ? null : () {},
-                      child: const Text('Forgot Password?'),
+                      onPressed: isLoading
+                          ? null
+                          : () => Navigator.of(
+                              context,
+                            ).pushNamed(AppRouter.forgotPassword),
+                      child: const Text('Lupa Kata Sandi?'),
                     ),
                   ),
                 ],

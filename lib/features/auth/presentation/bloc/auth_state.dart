@@ -8,6 +8,7 @@ enum AuthStatus {
   success,
   pendingApproval,
   registered,
+  passwordReset,
   failure,
 }
 
